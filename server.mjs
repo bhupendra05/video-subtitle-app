@@ -57,22 +57,23 @@ app.get('/api/voices', async (_req, res) => {
 // ── Preview a voice (streams MP3 back) ──────────────────────────────────────
 app.get('/api/preview-voice/:name', async (req, res) => {
   const voice = req.params.name.replace(/[^a-zA-Z0-9 _-]/g, ''); // sanitize
-  const aiff  = path.join(PUBLIC_DIR, 'audio', `preview-${voice}.aiff`);
+  const wav   = path.join(PUBLIC_DIR, 'audio', `preview-${voice}.wav`);
   const mp3   = path.join(PUBLIC_DIR, 'audio', `preview-${voice}.mp3`);
 
   try {
     const text = `Hi, my name is ${voice}. This is how I sound when reading your video.`;
-    await execAsync(`say -v "${voice}" "${text}" -o "${aiff}"`);
+    // Output WAV directly — Remotion FFmpeg doesn't support AIFF
+    await execAsync(`say -v "${voice}" "${text}" -o "${wav}" --data-format=LEI16@22050`);
     await execAsync(
-      `npx remotion ffmpeg -i "${aiff}" -codec:a libmp3lame -qscale:a 2 "${mp3}" -y`,
+      `npx remotion ffmpeg -i "${wav}" -codec:a libmp3lame -qscale:a 2 "${mp3}" -y`,
       { cwd: __dirname }
     );
     res.setHeader('Content-Type', 'audio/mpeg');
     const stream = fs.createReadStream(mp3);
     stream.pipe(res);
     stream.on('close', () => {
-      fs.rmSync(aiff, { force: true });
-      fs.rmSync(mp3,  { force: true });
+      fs.rmSync(wav, { force: true });
+      fs.rmSync(mp3, { force: true });
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -106,7 +107,7 @@ app.get('/api/process/:jobId', async (req, res) => {
     const audioWav   = path.join(PUBLIC_DIR, 'audio',    `${jobId}.wav`);
     const origCaps   = path.join(PUBLIC_DIR, 'captions', `${jobId}-orig.json`);
     const txFile     = path.join(PUBLIC_DIR, 'audio',    `${jobId}-transcript.txt`);
-    const sayAiff    = path.join(PUBLIC_DIR, 'audio',    `${jobId}-say.aiff`);
+    const sayWav     = path.join(PUBLIC_DIR, 'audio',    `${jobId}-say.wav`);
     const ttsAudio   = path.join(PUBLIC_DIR, 'audio',    `${jobId}-tts.mp3`);
     const ttsWav     = path.join(PUBLIC_DIR, 'audio',    `${jobId}-tts.wav`);
     const finalCaps  = path.join(PUBLIC_DIR, 'captions', `${jobId}-final.json`);
@@ -149,10 +150,10 @@ app.get('/api/process/:jobId', async (req, res) => {
 
     fs.writeFileSync(txFile, transcript, 'utf8');
 
-    // say → AIFF → MP3
-    await execAsync(`say -v "${job.voice}" -f "${txFile}" -o "${sayAiff}"`);
+    // say → WAV → MP3 (Remotion FFmpeg doesn't support AIFF)
+    await execAsync(`say -v "${job.voice}" -f "${txFile}" -o "${sayWav}" --data-format=LEI16@22050`);
     await execAsync(
-      `npx remotion ffmpeg -i "${sayAiff}" -codec:a libmp3lame -qscale:a 2 "${ttsAudio}" -y`,
+      `npx remotion ffmpeg -i "${sayWav}" -codec:a libmp3lame -qscale:a 2 "${ttsAudio}" -y`,
       { cwd: __dirname }
     );
 
@@ -167,7 +168,7 @@ app.get('/api/process/:jobId', async (req, res) => {
     );
 
     // Cleanup temp files
-    for (const f of [txFile, sayAiff, ttsWav]) fs.rmSync(f, { force: true });
+    for (const f of [txFile, sayWav, ttsWav]) fs.rmSync(f, { force: true });
 
     // Get TTS audio duration
     const { stdout: ttsProbeRaw } = await execAsync(
