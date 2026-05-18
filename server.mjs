@@ -187,7 +187,7 @@ app.get('/api/process/:jobId', async (req, res) => {
     fs.writeFileSync(propsFile, JSON.stringify(props));
 
     await execAsync(
-      `npx remotion render src/index.ts VideoWithSubtitles "${outputPath}" --props="${propsFile}" --log=error`,
+      `npx remotion render src/index.tsx VideoWithSubtitles "${outputPath}" --props="${propsFile}" --log=error`,
       { cwd: __dirname, timeout: 60 * 60 * 1000 }
     );
 
