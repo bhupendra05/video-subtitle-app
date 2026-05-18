@@ -1,5 +1,5 @@
 import React from 'react';
-import { Composition } from 'remotion';
+import { Composition, registerRoot } from 'remotion';
 import { VideoWithSubtitles, type VideoProps } from './VideoWithSubtitles';
 import type { CalculateMetadataFunction } from 'remotion';
 
@@ -10,7 +10,7 @@ const calculateMetadata: CalculateMetadataFunction<VideoProps> = async ({ props 
   durationInFrames: props.durationInFrames,
 });
 
-export const RemotionRoot: React.FC = () => (
+const RemotionRoot: React.FC = () => (
   <Composition
     id="VideoWithSubtitles"
     component={VideoWithSubtitles}
@@ -26,3 +26,5 @@ export const RemotionRoot: React.FC = () => (
     }}
   />
 );
+
+registerRoot(RemotionRoot);
