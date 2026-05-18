@@ -1,0 +1,12 @@
+node_modules/
+.env
+public/uploads/
+public/audio/
+public/captions/
+public/renders/
+public/*-props.json
+whisper.cpp/
+dist/
+*.mp4
+*.wav
+*.mp3

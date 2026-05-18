@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "ES2022"],
+    "module": "ESNext",
+    "target": "ES2022",
+    "strict": true,
+    "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "remotion.config.ts"]
+}
