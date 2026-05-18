@@ -170,21 +170,24 @@ app.get('/api/process/:jobId', async (req, res) => {
     const ttsDurationSec = parseFloat(JSON.parse(ttsProbeRaw).format?.duration ?? '60');
     const durationInFrames = Math.ceil(Math.max(videoDurationSec, ttsDurationSec) * fps);
 
-    // 5 ── Render with Remotion
+    // 5 ── Render with Remotion (cap at 1080p to keep render time reasonable)
     send({ step: 5, total: 5, label: 'Rendering final video…' });
+    const scale  = Math.min(1, 1920 / width);
+    const rWidth  = Math.round(width  * scale / 2) * 2; // must be even
+    const rHeight = Math.round(height * scale / 2) * 2;
     const props = {
       videoFile:        `uploads/${job.videoFilename}`,
       audioFile:        `audio/${jobId}-tts.mp3`,
       captionsFile:     `captions/${jobId}-final.json`,
       durationInFrames,
-      width,
-      height,
+      width:  rWidth,
+      height: rHeight,
       fps,
     };
     fs.writeFileSync(propsFile, JSON.stringify(props));
 
     await execAsync(
-      `npx remotion render src/index.ts VideoWithSubtitles "${outputPath}" --props="@${propsFile}" --log=error`,
+      `npx remotion render src/index.ts VideoWithSubtitles "${outputPath}" --props="${propsFile}" --log=error`,
       { cwd: __dirname, timeout: 60 * 60 * 1000 }
     );
 
