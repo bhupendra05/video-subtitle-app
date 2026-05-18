@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Video Studio — Subtitles + ElevenLabs</title>
+  <title>Video Studio — Subtitles + Voice</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -18,10 +18,7 @@
       padding: 48px 24px 80px;
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
+    header { text-align: center; margin-bottom: 40px; }
     header h1 {
       font-size: 2rem;
       font-weight: 700;
@@ -31,10 +28,7 @@
       background-clip: text;
       margin-bottom: 8px;
     }
-    header p {
-      color: #6b7280;
-      font-size: 0.95rem;
-    }
+    header p { color: #6b7280; font-size: 0.95rem; }
 
     .card {
       background: #16161f;
@@ -54,12 +48,14 @@
       margin-bottom: 16px;
     }
 
-    /* API key input */
-    .key-row {
+    /* Voice picker */
+    .voice-row {
       display: flex;
       gap: 10px;
+      align-items: center;
     }
-    .key-row input {
+    .voice-row label { font-size: 0.88rem; color: #9ca3af; white-space: nowrap; }
+    select#voice-select {
       flex: 1;
       background: #0c0c10;
       border: 1px solid #2a2a38;
@@ -67,25 +63,19 @@
       color: #e2e2e8;
       font-size: 0.9rem;
       padding: 10px 14px;
-      font-family: monospace;
       outline: none;
+      cursor: pointer;
       transition: border-color 0.2s;
     }
-    .key-row input:focus { border-color: #7c3aed; }
-    .key-row input::placeholder { color: #4b5563; }
-    .btn-save {
-      background: #7c3aed;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
+    select#voice-select:focus { border-color: #7c3aed; }
+    .voice-badge {
+      font-size: 0.75rem;
+      background: #1e1e2e;
+      color: #6b7280;
+      padding: 4px 10px;
+      border-radius: 20px;
       white-space: nowrap;
     }
-    .btn-save:hover { background: #6d28d9; }
 
     /* Drop zone */
     #drop-zone {
@@ -95,29 +85,13 @@
       text-align: center;
       cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
-      position: relative;
     }
-    #drop-zone.dragover {
-      border-color: #7c3aed;
-      background: #1a1428;
-    }
-    #drop-zone .icon {
-      font-size: 2.5rem;
-      margin-bottom: 12px;
-    }
-    #drop-zone h3 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #c4c4d0;
-    }
-    #drop-zone p {
-      font-size: 0.85rem;
-      color: #6b7280;
-    }
+    #drop-zone.dragover { border-color: #7c3aed; background: #1a1428; }
+    #drop-zone .icon { font-size: 2.5rem; margin-bottom: 12px; }
+    #drop-zone h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #c4c4d0; }
+    #drop-zone p { font-size: 0.85rem; color: #6b7280; }
     #file-input { display: none; }
 
-    /* Selected file pill */
     #file-pill {
       display: none;
       align-items: center;
@@ -134,14 +108,12 @@
       margin-left: auto;
       cursor: pointer;
       color: #6b7280;
-      font-size: 1rem;
       background: none;
       border: none;
-      line-height: 1;
+      font-size: 1rem;
     }
     #file-pill .remove-btn:hover { color: #e2e2e8; }
 
-    /* Process button */
     #process-btn {
       width: 100%;
       padding: 14px;
@@ -158,13 +130,9 @@
     #process-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     #process-btn:not(:disabled):hover { opacity: 0.92; }
 
-    /* Progress steps */
+    /* Progress */
     #progress-card { display: none; }
-    .step-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+    .step-list { display: flex; flex-direction: column; gap: 14px; }
     .step {
       display: flex;
       align-items: center;
@@ -177,85 +145,45 @@
       color: #6b7280;
       transition: all 0.3s;
     }
-    .step.active {
-      border-color: #7c3aed;
-      color: #e2e2e8;
-      background: #1a1428;
-    }
-    .step.done {
-      border-color: #16a34a;
-      color: #4ade80;
-      background: #0d1f12;
-    }
-    .step.error-step {
-      border-color: #dc2626;
-      color: #f87171;
-      background: #1f0d0d;
-    }
+    .step.active { border-color: #7c3aed; color: #e2e2e8; background: #1a1428; }
+    .step.done   { border-color: #16a34a; color: #4ade80; background: #0d1f12; }
     .step-icon {
-      width: 28px;
-      height: 28px;
+      width: 28px; height: 28px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 0.85rem;
       flex-shrink: 0;
       background: #1e1e2e;
     }
     .step.active .step-icon { background: #4c1d95; animation: pulse 1.2s infinite; }
-    .step.done  .step-icon { background: #14532d; }
+    .step.done  .step-icon  { background: #14532d; }
 
     @keyframes pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.5); }
       50%       { box-shadow: 0 0 0 6px rgba(124,58,237,0); }
     }
 
-    /* Download section */
+    /* Download */
     #download-card { display: none; }
-    .download-inner {
-      text-align: center;
-    }
-    .download-inner .success-icon {
-      font-size: 3rem;
-      margin-bottom: 12px;
-    }
-    .download-inner h3 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    .download-inner p {
-      font-size: 0.88rem;
-      color: #6b7280;
-      margin-bottom: 20px;
-    }
+    .download-inner { text-align: center; }
+    .download-inner .success-icon { font-size: 3rem; margin-bottom: 12px; }
+    .download-inner h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; }
+    .download-inner p { font-size: 0.88rem; color: #6b7280; margin-bottom: 20px; }
     #download-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: #16a34a;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #16a34a; color: #fff;
+      border: none; border-radius: 10px;
       padding: 12px 28px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
       transition: background 0.2s;
     }
     #download-btn:hover { background: #15803d; }
-
     #reset-btn {
-      display: block;
-      margin: 14px auto 0;
-      background: none;
-      border: none;
-      color: #6b7280;
-      font-size: 0.88rem;
-      cursor: pointer;
-      text-decoration: underline;
+      display: block; margin: 14px auto 0;
+      background: none; border: none;
+      color: #6b7280; font-size: 0.88rem;
+      cursor: pointer; text-decoration: underline;
     }
     #reset-btn:hover { color: #c4c4d0; }
 
@@ -276,15 +204,16 @@
 
 <header>
   <h1>Video Studio</h1>
-  <p>Add subtitles + replace audio with ElevenLabs · runs 100% locally</p>
+  <p>Add subtitles + replace audio using macOS voices · 100% free, runs locally</p>
 </header>
 
-<!-- API Key -->
+<!-- Voice picker -->
 <div class="card">
-  <div class="card-title">ElevenLabs API Key</div>
-  <div class="key-row">
-    <input type="password" id="api-key-input" placeholder="sk-••••••••••••••••••••••" autocomplete="off" />
-    <button class="btn-save" onclick="saveKey()">Save</button>
+  <div class="card-title">Choose Voice</div>
+  <div class="voice-row">
+    <label for="voice-select">macOS voice</label>
+    <select id="voice-select"><option value="Samantha">Samantha (loading…)</option></select>
+    <span class="voice-badge">Free · Offline</span>
   </div>
 </div>
 
@@ -323,64 +252,52 @@
   <div class="download-inner">
     <div class="success-icon">✅</div>
     <h3>Your video is ready!</h3>
-    <p>Subtitles burned in · audio replaced with Adam (ElevenLabs)</p>
+    <p id="done-desc">Subtitles added · audio replaced</p>
     <a id="download-btn" href="#" download="video-with-subtitles.mp4">⬇ Download Video</a>
     <button id="reset-btn" onclick="resetApp()">Process another video</button>
   </div>
 </div>
 
 <script>
-  // ── State ────────────────────────────────────────────────────────────────
   let selectedFile = null;
-  let currentJobId = null;
 
   const STEPS = [
-    { id: 1, label: 'Extracting audio from video'         },
-    { id: 2, label: 'Reading video metadata'              },
-    { id: 3, label: 'Transcribing with Whisper'           },
-    { id: 4, label: 'Generating voice with ElevenLabs'    },
-    { id: 5, label: 'Rendering final video with Remotion' },
+    { id: 1, label: 'Extracting audio from video'        },
+    { id: 2, label: 'Reading video metadata'             },
+    { id: 3, label: 'Transcribing speech with Whisper'   },
+    { id: 4, label: 'Generating voice (macOS TTS)'       },
+    { id: 5, label: 'Rendering final video with Remotion'},
   ];
 
-  // ── API key ──────────────────────────────────────────────────────────────
-  (function loadKey() {
-    const saved = localStorage.getItem('el_api_key');
-    if (saved) document.getElementById('api-key-input').value = saved;
-  })();
-
-  function saveKey() {
-    const key = document.getElementById('api-key-input').value.trim();
-    if (!key) return alert('Please enter your ElevenLabs API key.');
-    localStorage.setItem('el_api_key', key);
-    document.getElementById('api-key-input').value = key;
-    showToast('API key saved!');
+  // ── Load voices from server ────────────────────────────────────────────────
+  async function loadVoices() {
+    try {
+      const res    = await fetch('/api/voices');
+      const voices = await res.json();
+      const sel    = document.getElementById('voice-select');
+      sel.innerHTML = voices
+        .map((v) => `<option value="${v.name}">${v.name} (${v.locale})</option>`)
+        .join('');
+      // Default to Samantha if present
+      const sam = voices.find((v) => v.name === 'Samantha');
+      if (sam) sel.value = 'Samantha';
+    } catch {
+      // keep default
+    }
   }
+  loadVoices();
 
-  function showToast(msg) {
-    const t = document.createElement('div');
-    Object.assign(t.style, {
-      position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
-      background: '#16a34a', color: '#fff', padding: '10px 20px',
-      borderRadius: '8px', fontSize: '0.88rem', fontWeight: '600',
-      zIndex: '999', transition: 'opacity 0.4s',
-    });
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2000);
-  }
-
-  // ── Drag & Drop ──────────────────────────────────────────────────────────
+  // ── Drag & Drop ────────────────────────────────────────────────────────────
   const zone = document.getElementById('drop-zone');
   zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
   zone.addEventListener('dragleave', ()  => zone.classList.remove('dragover'));
-  zone.addEventListener('drop',      (e) => {
+  zone.addEventListener('drop', (e) => {
     e.preventDefault();
     zone.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('video/')) setFile(file);
     else alert('Please drop a video file.');
   });
-
   document.getElementById('file-input').addEventListener('change', (e) => {
     if (e.target.files[0]) setFile(e.target.files[0]);
   });
@@ -400,48 +317,33 @@
     document.getElementById('file-input').value = '';
   }
 
-  // ── Start processing ─────────────────────────────────────────────────────
+  // ── Start ──────────────────────────────────────────────────────────────────
   async function startProcess() {
-    const apiKey = document.getElementById('api-key-input').value.trim();
-    if (!apiKey) { alert('Please enter and save your ElevenLabs API key first.'); return; }
     if (!selectedFile) return;
-
     hideError();
     document.getElementById('process-btn').disabled = true;
 
-    // Upload the video first
+    const voice = document.getElementById('voice-select').value;
+
     const formData = new FormData();
     formData.append('video', selectedFile);
+    formData.append('voice', voice);
 
     let jobId;
     try {
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!uploadRes.ok) throw new Error(await uploadRes.text());
-      const { jobId: id } = await uploadRes.json();
-      jobId = id;
-      currentJobId = jobId;
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(await res.text());
+      ({ jobId } = await res.json());
     } catch (err) {
       showError('Upload failed: ' + err.message);
       document.getElementById('process-btn').disabled = false;
       return;
     }
 
-    // Store API key server-side for this request by appending as header via custom endpoint
-    // (We set it server-side from .env, but let the user override via a special endpoint)
-    try {
-      await fetch('/api/set-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey }),
-      });
-    } catch (_) { /* non-fatal */ }
-
-    // Show progress panel
-    document.getElementById('upload-card').style.display = 'none';
+    document.getElementById('upload-card').style.display   = 'none';
     document.getElementById('progress-card').style.display = 'block';
-    renderSteps(-1);
+    renderSteps(0);
 
-    // Open SSE stream
     const evtSource = new EventSource(`/api/process/${jobId}`);
     evtSource.onmessage = (e) => {
       const data = JSON.parse(e.data);
@@ -457,11 +359,13 @@
 
       if (data.status === 'done') {
         evtSource.close();
-        renderSteps(5);
+        renderSteps(6);
         setTimeout(() => {
           document.getElementById('progress-card').style.display = 'none';
           document.getElementById('download-card').style.display = 'block';
           document.getElementById('download-btn').href = data.downloadUrl;
+          document.getElementById('done-desc').textContent =
+            `Subtitles added · audio replaced with ${voice} (macOS)`;
         }, 600);
         return;
       }
@@ -471,22 +375,17 @@
 
     evtSource.onerror = () => {
       evtSource.close();
-      showError('Connection to server lost. Is the server still running?');
+      showError('Connection lost. Is the server still running?');
     };
   }
 
   function renderSteps(activeStep) {
-    const list = document.getElementById('step-list');
-    list.innerHTML = STEPS.map(({ id, label }) => {
-      const isDone   = id < activeStep || activeStep === 5 && id <= 5;
+    document.getElementById('step-list').innerHTML = STEPS.map(({ id, label }) => {
+      const isDone   = id < activeStep;
       const isActive = id === activeStep;
-      const cls      = isDone ? 'step done' : isActive ? 'step active' : 'step';
-      const icon     = isDone ? '✓' : isActive ? '…' : id;
-      return `
-        <div class="${cls}">
-          <div class="step-icon">${icon}</div>
-          <span>${label}</span>
-        </div>`;
+      const cls  = isDone ? 'step done' : isActive ? 'step active' : 'step';
+      const icon = isDone ? '✓' : isActive ? '…' : id;
+      return `<div class="${cls}"><div class="step-icon">${icon}</div><span>${label}</span></div>`;
     }).join('');
   }
 
@@ -495,14 +394,12 @@
     el.textContent = '⚠ ' + msg;
     el.style.display = 'block';
   }
-
   function hideError() {
     document.getElementById('error-msg').style.display = 'none';
   }
 
   function resetApp() {
     selectedFile = null;
-    currentJobId = null;
     document.getElementById('download-card').style.display  = 'none';
     document.getElementById('upload-card').style.display    = 'block';
     document.getElementById('file-pill').style.display      = 'none';
