@@ -35,46 +35,39 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 4 * 1024 * 1024 * 1024 } });
 
-// ── List available macOS voices (English only) ───────────────────────────────
-app.get('/api/voices', async (_req, res) => {
-  try {
-    const { stdout } = await execAsync('say -v ?');
-    const voices = stdout
-      .split('\n')
-      .filter((line) => /en_/.test(line))
-      .map((line) => {
-        const name = line.split(/\s+/)[0];
-        const locale = line.match(/en_[A-Z]+/)?.[0] ?? 'en_US';
-        return { name, locale };
-      })
-      .filter((v) => v.name);
-    res.json(voices);
-  } catch {
-    res.json([{ name: 'Samantha', locale: 'en_US' }]);
-  }
-});
+// ── Curated Edge TTS voice list ──────────────────────────────────────────────
+const EDGE_VOICES = [
+  { name: 'en-US-AriaNeural',    label: 'Aria',    locale: '🇺🇸 US',  gender: 'Female', style: 'Natural, warm'       },
+  { name: 'en-US-JennyNeural',   label: 'Jenny',   locale: '🇺🇸 US',  gender: 'Female', style: 'Friendly, clear'     },
+  { name: 'en-US-GuyNeural',     label: 'Guy',     locale: '🇺🇸 US',  gender: 'Male',   style: 'Confident, deep'     },
+  { name: 'en-US-EricNeural',    label: 'Eric',    locale: '🇺🇸 US',  gender: 'Male',   style: 'Calm, professional'  },
+  { name: 'en-US-MichelleNeural',label: 'Michelle',locale: '🇺🇸 US',  gender: 'Female', style: 'Bright, energetic'   },
+  { name: 'en-US-RogerNeural',   label: 'Roger',   locale: '🇺🇸 US',  gender: 'Male',   style: 'Smooth, podcast'     },
+  { name: 'en-GB-SoniaNeural',   label: 'Sonia',   locale: '🇬🇧 UK',  gender: 'Female', style: 'British, polished'   },
+  { name: 'en-GB-RyanNeural',    label: 'Ryan',    locale: '🇬🇧 UK',  gender: 'Male',   style: 'British, crisp'      },
+  { name: 'en-AU-NatashaNeural', label: 'Natasha', locale: '🇦🇺 AU',  gender: 'Female', style: 'Australian, clear'   },
+  { name: 'en-AU-WilliamNeural', label: 'William', locale: '🇦🇺 AU',  gender: 'Male',   style: 'Australian, relaxed' },
+  { name: 'en-IN-NeerjaNeural',  label: 'Neerja',  locale: '🇮🇳 IN',  gender: 'Female', style: 'Indian English'      },
+];
 
-// ── Preview a voice (streams MP3 back) ──────────────────────────────────────
+app.get('/api/voices', (_req, res) => res.json(EDGE_VOICES));
+
+// ── Preview a voice via Edge TTS ─────────────────────────────────────────────
 app.get('/api/preview-voice/:name', async (req, res) => {
-  const voice = req.params.name.replace(/[^a-zA-Z0-9 _-]/g, ''); // sanitize
-  const wav   = path.join(PUBLIC_DIR, 'audio', `preview-${voice}.wav`);
+  const voice = req.params.name.replace(/[^a-zA-Z0-9-]/g, '');
   const mp3   = path.join(PUBLIC_DIR, 'audio', `preview-${voice}.mp3`);
+  const info  = EDGE_VOICES.find((v) => v.name === voice);
+  const label = info?.label ?? voice;
 
   try {
-    const text = `Hi, my name is ${voice}. This is how I sound when reading your video.`;
-    // Output WAV directly — Remotion FFmpeg doesn't support AIFF
-    await execAsync(`say -v "${voice}" "${text}" -o "${wav}" --data-format=LEI16@22050`);
     await execAsync(
-      `npx remotion ffmpeg -i "${wav}" -codec:a libmp3lame -qscale:a 2 "${mp3}" -y`,
-      { cwd: __dirname }
+      `python3 -m edge_tts --voice "${voice}" --text "Hi, I am ${label}. This is how I sound when narrating your video." --write-media "${mp3}"`,
+      { timeout: 15000 }
     );
     res.setHeader('Content-Type', 'audio/mpeg');
     const stream = fs.createReadStream(mp3);
     stream.pipe(res);
-    stream.on('close', () => {
-      fs.rmSync(wav, { force: true });
-      fs.rmSync(mp3, { force: true });
-    });
+    stream.on('close', () => fs.rmSync(mp3, { force: true }));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -84,7 +77,7 @@ app.get('/api/preview-voice/:name', async (req, res) => {
 app.post('/api/upload', upload.single('video'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   const jobId = Date.now().toString();
-  const voice = req.body.voice || 'Samantha';
+  const voice = req.body.voice || 'en-US-AriaNeural';
   jobs.set(jobId, { status: 'uploaded', videoFilename: req.file.filename, voice });
   res.json({ jobId });
 });
@@ -145,16 +138,15 @@ app.get('/api/process/:jobId', async (req, res) => {
     const transcript = origCaptions.map((c) => c.text).join('').trim();
     if (!transcript) throw new Error('Whisper produced an empty transcript — check the video has clear speech.');
 
-    // 4 ── macOS TTS via `say`, then re-transcribe for accurate subtitle timing
-    send({ step: 4, total: 5, label: `Generating voice with macOS (${job.voice})…` });
+    // 4 ── Edge TTS (Microsoft neural voices, free, no API key)
+    send({ step: 4, total: 5, label: `Generating voice with Edge TTS (${job.voice})…` });
 
     fs.writeFileSync(txFile, transcript, 'utf8');
 
-    // say → WAV → MP3 (Remotion FFmpeg doesn't support AIFF)
-    await execAsync(`say -v "${job.voice}" -f "${txFile}" -o "${sayWav}" --data-format=LEI16@22050`);
+    // edge-tts outputs MP3 directly
     await execAsync(
-      `npx remotion ffmpeg -i "${sayWav}" -codec:a libmp3lame -qscale:a 2 "${ttsAudio}" -y`,
-      { cwd: __dirname }
+      `python3 scripts/tts.py "${txFile}" "${job.voice}" "${ttsAudio}"`,
+      { cwd: __dirname, timeout: 5 * 60 * 1000 }
     );
 
     // Convert TTS MP3 → 16kHz WAV for Whisper re-transcription
@@ -168,7 +160,7 @@ app.get('/api/process/:jobId', async (req, res) => {
     );
 
     // Cleanup temp files
-    for (const f of [txFile, sayWav, ttsWav]) fs.rmSync(f, { force: true });
+    for (const f of [txFile, ttsWav]) fs.rmSync(f, { force: true });
 
     // Get TTS audio duration
     const { stdout: ttsProbeRaw } = await execAsync(

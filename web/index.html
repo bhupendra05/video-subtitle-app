@@ -311,10 +311,11 @@
 
   function renderVoiceList(voices) {
     const list = document.getElementById('voice-list');
-    // Default selection
-    if (voices.length) selectedVoice = voices.find(v => v.name === 'Samantha')?.name ?? voices[0].name;
+    if (voices.length) {
+      selectedVoice = voices.find(v => v.name === 'en-US-AriaNeural')?.name ?? voices[0].name;
+    }
 
-    list.innerHTML = voices.map(({ name, locale }) => `
+    list.innerHTML = voices.map(({ name, label, locale, gender, style }) => `
       <div class="voice-item ${name === selectedVoice ? 'selected' : ''}"
            id="vi-${name}"
            onclick="selectVoice('${name}')">
@@ -322,26 +323,14 @@
           <div class="voice-radio-dot"></div>
         </div>
         <div class="voice-info">
-          <div class="voice-name">${name}</div>
-          <div class="voice-locale">${localeLabel(locale)}</div>
+          <div class="voice-name">${label} <span style="font-weight:400;color:#9ca3af;font-size:0.8rem">${locale} · ${gender}</span></div>
+          <div class="voice-locale">${style}</div>
         </div>
         <button class="play-btn" id="pb-${name}"
                 onclick="event.stopPropagation(); previewVoice('${name}')"
-                title="Preview ${name}">▶</button>
+                title="Preview ${label}">▶</button>
       </div>
     `).join('');
-  }
-
-  function localeLabel(locale) {
-    const map = {
-      en_US: '🇺🇸 English (US)',
-      en_GB: '🇬🇧 English (UK)',
-      en_AU: '🇦🇺 English (AU)',
-      en_IE: '🇮🇪 English (IE)',
-      en_IN: '🇮🇳 English (IN)',
-      en_ZA: '🇿🇦 English (ZA)',
-    };
-    return map[locale] ?? locale;
   }
 
   function selectVoice(name) {
