@@ -54,6 +54,31 @@ app.get('/api/voices', async (_req, res) => {
   }
 });
 
+// ── Preview a voice (streams MP3 back) ──────────────────────────────────────
+app.get('/api/preview-voice/:name', async (req, res) => {
+  const voice = req.params.name.replace(/[^a-zA-Z0-9 _-]/g, ''); // sanitize
+  const aiff  = path.join(PUBLIC_DIR, 'audio', `preview-${voice}.aiff`);
+  const mp3   = path.join(PUBLIC_DIR, 'audio', `preview-${voice}.mp3`);
+
+  try {
+    const text = `Hi, my name is ${voice}. This is how I sound when reading your video.`;
+    await execAsync(`say -v "${voice}" "${text}" -o "${aiff}"`);
+    await execAsync(
+      `npx remotion ffmpeg -i "${aiff}" -codec:a libmp3lame -qscale:a 2 "${mp3}" -y`,
+      { cwd: __dirname }
+    );
+    res.setHeader('Content-Type', 'audio/mpeg');
+    const stream = fs.createReadStream(mp3);
+    stream.pipe(res);
+    stream.on('close', () => {
+      fs.rmSync(aiff, { force: true });
+      fs.rmSync(mp3,  { force: true });
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Upload ───────────────────────────────────────────────────────────────────
 app.post('/api/upload', upload.single('video'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });

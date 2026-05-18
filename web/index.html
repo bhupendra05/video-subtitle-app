@@ -34,7 +34,7 @@
       background: #16161f;
       border: 1px solid #2a2a38;
       border-radius: 16px;
-      padding: 32px;
+      padding: 28px;
       width: 100%;
       max-width: 640px;
       margin-bottom: 24px;
@@ -48,36 +48,90 @@
       margin-bottom: 16px;
     }
 
-    /* Voice picker */
-    .voice-row {
+    /* ── Voice list ──────────────────────────────────────────────────────── */
+    #voice-list {
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    #voice-list::-webkit-scrollbar { width: 4px; }
+    #voice-list::-webkit-scrollbar-track { background: transparent; }
+    #voice-list::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 4px; }
+
+    .voice-item {
+      display: flex;
       align-items: center;
-    }
-    .voice-row label { font-size: 0.88rem; color: #9ca3af; white-space: nowrap; }
-    select#voice-select {
-      flex: 1;
-      background: #0c0c10;
-      border: 1px solid #2a2a38;
-      border-radius: 8px;
-      color: #e2e2e8;
-      font-size: 0.9rem;
+      gap: 12px;
       padding: 10px 14px;
-      outline: none;
+      border-radius: 10px;
+      border: 1.5px solid #1e1e2e;
+      background: #0c0c10;
       cursor: pointer;
-      transition: border-color 0.2s;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
     }
-    select#voice-select:focus { border-color: #7c3aed; }
-    .voice-badge {
-      font-size: 0.75rem;
-      background: #1e1e2e;
-      color: #6b7280;
-      padding: 4px 10px;
-      border-radius: 20px;
-      white-space: nowrap;
+    .voice-item:hover { border-color: #3a3a50; background: #13131a; }
+    .voice-item.selected {
+      border-color: #7c3aed;
+      background: #1a1428;
     }
 
-    /* Drop zone */
+    .voice-radio {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid #3a3a50;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s;
+    }
+    .voice-item.selected .voice-radio { border-color: #7c3aed; }
+    .voice-radio-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #7c3aed;
+      display: none;
+    }
+    .voice-item.selected .voice-radio-dot { display: block; }
+
+    .voice-info { flex: 1; min-width: 0; }
+    .voice-name { font-size: 0.92rem; font-weight: 600; color: #e2e2e8; }
+    .voice-locale {
+      font-size: 0.74rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .play-btn {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: 1.5px solid #2a2a38;
+      background: #1e1e2e;
+      color: #a78bfa;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .play-btn:hover { background: #2a1f4a; border-color: #7c3aed; }
+    .play-btn.loading { color: #6b7280; cursor: default; animation: spin 1s linear infinite; }
+    .play-btn.playing { color: #60a5fa; border-color: #60a5fa; background: #0d1f3a; }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .voice-loading {
+      color: #6b7280;
+      font-size: 0.88rem;
+      padding: 8px 0;
+    }
+
+    /* ── Drop zone ───────────────────────────────────────────────────────── */
     #drop-zone {
       border: 2px dashed #2a2a38;
       border-radius: 12px;
@@ -89,8 +143,8 @@
     #drop-zone.dragover { border-color: #7c3aed; background: #1a1428; }
     #drop-zone .icon { font-size: 2.5rem; margin-bottom: 12px; }
     #drop-zone h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #c4c4d0; }
-    #drop-zone p { font-size: 0.85rem; color: #6b7280; }
-    #file-input { display: none; }
+    #drop-zone p  { font-size: 0.85rem; color: #6b7280; }
+    #file-input   { display: none; }
 
     #file-pill {
       display: none;
@@ -105,98 +159,71 @@
       color: #c4c4d0;
     }
     #file-pill .remove-btn {
-      margin-left: auto;
-      cursor: pointer;
-      color: #6b7280;
-      background: none;
-      border: none;
-      font-size: 1rem;
+      margin-left: auto; cursor: pointer;
+      color: #6b7280; background: none; border: none; font-size: 1rem;
     }
     #file-pill .remove-btn:hover { color: #e2e2e8; }
 
     #process-btn {
-      width: 100%;
-      padding: 14px;
+      width: 100%; padding: 14px;
       background: linear-gradient(135deg, #7c3aed, #2563eb);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 20px;
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; margin-top: 20px;
       transition: opacity 0.2s;
     }
     #process-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     #process-btn:not(:disabled):hover { opacity: 0.92; }
 
-    /* Progress */
+    /* ── Progress ────────────────────────────────────────────────────────── */
     #progress-card { display: none; }
     .step-list { display: flex; flex-direction: column; gap: 14px; }
     .step {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 16px;
-      border-radius: 10px;
-      background: #0c0c10;
-      border: 1px solid #1e1e2e;
-      font-size: 0.9rem;
-      color: #6b7280;
-      transition: all 0.3s;
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 16px; border-radius: 10px;
+      background: #0c0c10; border: 1px solid #1e1e2e;
+      font-size: 0.9rem; color: #6b7280; transition: all 0.3s;
     }
     .step.active { border-color: #7c3aed; color: #e2e2e8; background: #1a1428; }
     .step.done   { border-color: #16a34a; color: #4ade80; background: #0d1f12; }
     .step-icon {
-      width: 28px; height: 28px;
-      border-radius: 50%;
+      width: 28px; height: 28px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.85rem;
-      flex-shrink: 0;
-      background: #1e1e2e;
+      font-size: 0.85rem; flex-shrink: 0; background: #1e1e2e;
     }
     .step.active .step-icon { background: #4c1d95; animation: pulse 1.2s infinite; }
     .step.done  .step-icon  { background: #14532d; }
-
     @keyframes pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.5); }
       50%       { box-shadow: 0 0 0 6px rgba(124,58,237,0); }
     }
 
-    /* Download */
+    /* ── Download ────────────────────────────────────────────────────────── */
     #download-card { display: none; }
     .download-inner { text-align: center; }
     .download-inner .success-icon { font-size: 3rem; margin-bottom: 12px; }
     .download-inner h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; }
-    .download-inner p { font-size: 0.88rem; color: #6b7280; margin-bottom: 20px; }
+    .download-inner p  { font-size: 0.88rem; color: #6b7280; margin-bottom: 20px; }
     #download-btn {
       display: inline-flex; align-items: center; gap: 8px;
-      background: #16a34a; color: #fff;
-      border: none; border-radius: 10px;
-      padding: 12px 28px;
-      font-size: 1rem; font-weight: 600;
-      cursor: pointer; text-decoration: none;
-      transition: background 0.2s;
+      background: #16a34a; color: #fff; border: none; border-radius: 10px;
+      padding: 12px 28px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; text-decoration: none; transition: background 0.2s;
     }
     #download-btn:hover { background: #15803d; }
     #reset-btn {
       display: block; margin: 14px auto 0;
-      background: none; border: none;
-      color: #6b7280; font-size: 0.88rem;
-      cursor: pointer; text-decoration: underline;
+      background: none; border: none; color: #6b7280;
+      font-size: 0.88rem; cursor: pointer; text-decoration: underline;
     }
     #reset-btn:hover { color: #c4c4d0; }
 
     #error-msg {
       display: none;
-      background: #1f0d0d;
-      border: 1px solid #dc2626;
-      border-radius: 10px;
-      padding: 14px 18px;
-      color: #f87171;
-      font-size: 0.88rem;
-      margin-top: 14px;
-      word-break: break-word;
+      background: #1f0d0d; border: 1px solid #dc2626;
+      border-radius: 10px; padding: 14px 18px;
+      color: #f87171; font-size: 0.88rem;
+      margin-top: 14px; word-break: break-word;
     }
   </style>
 </head>
@@ -209,12 +236,8 @@
 
 <!-- Voice picker -->
 <div class="card">
-  <div class="card-title">Choose Voice</div>
-  <div class="voice-row">
-    <label for="voice-select">macOS voice</label>
-    <select id="voice-select"><option value="Samantha">Samantha (loading…)</option></select>
-    <span class="voice-badge">Free · Offline</span>
-  </div>
+  <div class="card-title">Choose Voice — click ▶ to preview</div>
+  <div id="voice-list"><p class="voice-loading">Loading voices…</p></div>
 </div>
 
 <!-- Upload -->
@@ -260,6 +283,8 @@
 
 <script>
   let selectedFile = null;
+  let selectedVoice = 'Samantha';
+  let currentAudio  = null; // currently playing Audio object
 
   const STEPS = [
     { id: 1, label: 'Extracting audio from video'        },
@@ -269,22 +294,114 @@
     { id: 5, label: 'Rendering final video with Remotion'},
   ];
 
-  // ── Load voices from server ────────────────────────────────────────────────
+  // ── Load & render voice list ───────────────────────────────────────────────
   async function loadVoices() {
     try {
       const res    = await fetch('/api/voices');
       const voices = await res.json();
-      const sel    = document.getElementById('voice-select');
-      sel.innerHTML = voices
-        .map((v) => `<option value="${v.name}">${v.name} (${v.locale})</option>`)
-        .join('');
-      // Default to Samantha if present
-      const sam = voices.find((v) => v.name === 'Samantha');
-      if (sam) sel.value = 'Samantha';
+      renderVoiceList(voices);
     } catch {
-      // keep default
+      renderVoiceList([
+        { name: 'Samantha', locale: 'en_US' },
+        { name: 'Alex',     locale: 'en_US' },
+        { name: 'Daniel',   locale: 'en_GB' },
+      ]);
     }
   }
+
+  function renderVoiceList(voices) {
+    const list = document.getElementById('voice-list');
+    // Default selection
+    if (voices.length) selectedVoice = voices.find(v => v.name === 'Samantha')?.name ?? voices[0].name;
+
+    list.innerHTML = voices.map(({ name, locale }) => `
+      <div class="voice-item ${name === selectedVoice ? 'selected' : ''}"
+           id="vi-${name}"
+           onclick="selectVoice('${name}')">
+        <div class="voice-radio">
+          <div class="voice-radio-dot"></div>
+        </div>
+        <div class="voice-info">
+          <div class="voice-name">${name}</div>
+          <div class="voice-locale">${localeLabel(locale)}</div>
+        </div>
+        <button class="play-btn" id="pb-${name}"
+                onclick="event.stopPropagation(); previewVoice('${name}')"
+                title="Preview ${name}">▶</button>
+      </div>
+    `).join('');
+  }
+
+  function localeLabel(locale) {
+    const map = {
+      en_US: '🇺🇸 English (US)',
+      en_GB: '🇬🇧 English (UK)',
+      en_AU: '🇦🇺 English (AU)',
+      en_IE: '🇮🇪 English (IE)',
+      en_IN: '🇮🇳 English (IN)',
+      en_ZA: '🇿🇦 English (ZA)',
+    };
+    return map[locale] ?? locale;
+  }
+
+  function selectVoice(name) {
+    selectedVoice = name;
+    document.querySelectorAll('.voice-item').forEach(el => el.classList.remove('selected'));
+    document.getElementById(`vi-${name}`)?.classList.add('selected');
+  }
+
+  // ── Voice preview ──────────────────────────────────────────────────────────
+  async function previewVoice(name) {
+    const btn = document.getElementById(`pb-${name}`);
+    if (!btn) return;
+
+    // Stop any currently playing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+      document.querySelectorAll('.play-btn.playing').forEach(b => {
+        b.textContent = '▶';
+        b.classList.remove('playing');
+      });
+      // If same button was playing, just stop
+      if (btn.classList.contains('was-playing')) {
+        btn.classList.remove('was-playing');
+        return;
+      }
+    }
+
+    btn.classList.add('loading');
+    btn.textContent = '↻';
+
+    try {
+      const url   = `/api/preview-voice/${encodeURIComponent(name)}`;
+      const audio = new Audio(url);
+      currentAudio = audio;
+
+      await new Promise((resolve, reject) => {
+        audio.oncanplay = () => {
+          btn.classList.remove('loading');
+          btn.classList.add('playing');
+          btn.classList.add('was-playing');
+          btn.textContent = '■';
+          audio.play();
+          resolve();
+        };
+        audio.onerror = reject;
+      });
+
+      audio.onended = () => {
+        btn.textContent = '▶';
+        btn.classList.remove('playing', 'was-playing');
+        currentAudio = null;
+      };
+    } catch {
+      btn.classList.remove('loading', 'playing', 'was-playing');
+      btn.textContent = '▶';
+      currentAudio = null;
+    }
+  }
+
   loadVoices();
 
   // ── Drag & Drop ────────────────────────────────────────────────────────────
@@ -292,8 +409,7 @@
   zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
   zone.addEventListener('dragleave', ()  => zone.classList.remove('dragover'));
   zone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    zone.classList.remove('dragover');
+    e.preventDefault(); zone.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('video/')) setFile(file);
     else alert('Please drop a video file.');
@@ -309,7 +425,6 @@
     document.getElementById('process-btn').disabled = false;
     hideError();
   }
-
   function clearFile() {
     selectedFile = null;
     document.getElementById('file-pill').style.display = 'none';
@@ -317,17 +432,18 @@
     document.getElementById('file-input').value = '';
   }
 
-  // ── Start ──────────────────────────────────────────────────────────────────
+  // ── Start processing ───────────────────────────────────────────────────────
   async function startProcess() {
     if (!selectedFile) return;
     hideError();
     document.getElementById('process-btn').disabled = true;
 
-    const voice = document.getElementById('voice-select').value;
+    // Stop any preview
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
 
     const formData = new FormData();
     formData.append('video', selectedFile);
-    formData.append('voice', voice);
+    formData.append('voice', selectedVoice);
 
     let jobId;
     try {
@@ -347,7 +463,6 @@
     const evtSource = new EventSource(`/api/process/${jobId}`);
     evtSource.onmessage = (e) => {
       const data = JSON.parse(e.data);
-
       if (data.status === 'error') {
         evtSource.close();
         document.getElementById('progress-card').style.display = 'none';
@@ -356,7 +471,6 @@
         document.getElementById('process-btn').disabled = false;
         return;
       }
-
       if (data.status === 'done') {
         evtSource.close();
         renderSteps(6);
@@ -365,14 +479,12 @@
           document.getElementById('download-card').style.display = 'block';
           document.getElementById('download-btn').href = data.downloadUrl;
           document.getElementById('done-desc').textContent =
-            `Subtitles added · audio replaced with ${voice} (macOS)`;
+            `Subtitles added · audio replaced with ${selectedVoice} (macOS)`;
         }, 600);
         return;
       }
-
       if (data.step) renderSteps(data.step);
     };
-
     evtSource.onerror = () => {
       evtSource.close();
       showError('Connection lost. Is the server still running?');
@@ -391,12 +503,9 @@
 
   function showError(msg) {
     const el = document.getElementById('error-msg');
-    el.textContent = '⚠ ' + msg;
-    el.style.display = 'block';
+    el.textContent = '⚠ ' + msg; el.style.display = 'block';
   }
-  function hideError() {
-    document.getElementById('error-msg').style.display = 'none';
-  }
+  function hideError() { document.getElementById('error-msg').style.display = 'none'; }
 
   function resetApp() {
     selectedFile = null;
