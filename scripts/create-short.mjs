@@ -57,6 +57,9 @@ const fetchBroll   = hasFlag('--broll');
 const fetchImages  = hasFlag('--images');
 const dryRun    = hasFlag('--dry-run');  // skip actual renders
 const skipGrade = hasFlag('--no-grade');
+const doUpload  = hasFlag('--upload');   // auto-upload to YouTube after render
+const scheduleAt = getArg('--schedule'); // ISO-8601 publish time for upload
+const uploadPrivacy = getArg('--privacy') || (scheduleAt ? 'private' : 'public');
 
 if (!topic && !scriptIn) {
   console.error(`
@@ -72,6 +75,9 @@ Flags:
   --color      Color scheme: teal-gold | cyber-green | fire-red | electric-blue
   --images     Generate cinematic images (FREE via Pollinations.ai, or Gemini if GEMINI_API_KEY set)
   --broll      Fetch AI video B-roll from SiliconFlow (requires SILICONFLOW_API_KEY)
+  --upload     ⬆️  Auto-upload to YouTube after rendering (requires --auth setup)
+  --schedule   Schedule upload time e.g. "2025-06-01T18:00:00Z" (implies --upload)
+  --privacy    public | private | unlisted  (default: public)
   --no-grade   Skip FFmpeg cinematic color grading
   --dry-run    Print steps without executing
 
@@ -361,6 +367,31 @@ async function main() {
     console.log(`\n  Script:     ${path.relative(ROOT, SCRIPT_JSON)}`);
     console.log(`  Captions:   ${path.relative(ROOT, CAPTIONS_JSON)}`);
     console.log('\n  Ready to upload to YouTube Shorts / TikTok / Instagram Reels!');
+
+    // ── Auto-upload to YouTube ────────────────────────────────────────────────
+    if ((doUpload || scheduleAt) && !dryRun && existsSync(FINAL_MP4)) {
+      console.log();
+      console.log('─'.repeat(50));
+      console.log(' ⬆️  Uploading to YouTube…');
+      console.log('─'.repeat(50));
+      const uploadArgs = [
+        'scripts/youtube-upload.mjs',
+        '--file', FINAL_MP4,
+        '--script', SCRIPT_JSON,
+        '--privacy', uploadPrivacy,
+      ];
+      if (scheduleAt) uploadArgs.push('--schedule', scheduleAt);
+      try {
+        const { stdout: uploadOut } = await execAsync(
+          `node ${uploadArgs.map(a => JSON.stringify(a)).join(' ')}`,
+          { cwd: ROOT, timeout: 5 * 60 * 1000 },
+        );
+        console.log(uploadOut);
+      } catch (uploadErr) {
+        console.log(`  ⚠️  YouTube upload failed: ${uploadErr.message}`);
+        console.log(`      Run manually: node scripts/youtube-upload.mjs --file ${path.relative(ROOT, FINAL_MP4)}`);
+      }
+    }
     console.log();
 
   } catch (err) {

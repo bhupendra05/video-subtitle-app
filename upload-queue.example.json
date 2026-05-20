@@ -1,0 +1,26 @@
+[
+  {
+    "file": "public/renders/my-video-1-FINAL.mp4",
+    "title": "AI Is Replacing Every Job By 2030 #Shorts",
+    "description": "Your job is next. AI is reshaping the economy faster than ever.\n\n#AI #FutureOfWork #Shorts",
+    "tags": "AI,FutureOfWork,JobLoss,Technology,Shorts",
+    "privacy": "public",
+    "category": "28",
+    "delayBetweenUploads": 20
+  },
+  {
+    "file": "public/renders/my-video-2-FINAL.mp4",
+    "title": "How Bitcoin Will Hit $1M by 2030 #Shorts",
+    "description": "The numbers don't lie. Bitcoin's trajectory is unlike anything we've seen.\n\n#Bitcoin #Crypto #Shorts",
+    "tags": "Bitcoin,Crypto,Finance,Investment,Shorts",
+    "scheduleAt": "2025-06-02T17:00:00Z",
+    "privacy": "private",
+    "category": "25",
+    "delayBetweenUploads": 30
+  },
+  {
+    "file": "public/renders/my-video-3-FINAL.mp4",
+    "privacy": "unlisted",
+    "category": "22"
+  }
+]

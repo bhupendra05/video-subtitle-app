@@ -544,9 +544,40 @@
         <button class="btn btn-primary" id="downloadBtn" onclick="downloadVideo()">
           ⬇️ Download
         </button>
+        <button class="btn" id="ytUploadBtn" onclick="uploadToYouTube()"
+          style="background:linear-gradient(135deg,#FF0000,#cc0000);color:#fff;border:none;cursor:pointer;padding:10px 20px;border-radius:10px;font-size:0.9rem;font-weight:600;display:flex;align-items:center;gap:8px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31.3 31.3 0 0 0 0 12a31.3 31.3 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31.3 31.3 0 0 0 24 12a31.3 31.3 0 0 0-.5-5.8z"/><polygon fill="#fff" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>
+          Upload to YouTube
+        </button>
         <button class="btn btn-secondary" onclick="resetToIdle()">
           🔄 New Short
         </button>
+      </div>
+
+      <!-- YouTube upload panel -->
+      <div id="ytPanel" style="display:none;margin-top:16px;background:rgba(255,0,0,0.06);border:1px solid rgba(255,0,0,0.25);border-radius:12px;padding:16px">
+        <div style="font-size:0.85rem;font-weight:600;color:#ff6666;margin-bottom:12px">📺 YouTube Upload</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <label style="font-size:0.8rem;color:var(--muted);width:80px">Privacy</label>
+            <select id="ytPrivacy" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-size:0.85rem">
+              <option value="public">🌍 Public</option>
+              <option value="unlisted">🔗 Unlisted</option>
+              <option value="private">🔒 Private</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <label style="font-size:0.8rem;color:var(--muted);width:80px">Schedule</label>
+            <input id="ytSchedule" type="datetime-local"
+              style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-size:0.85rem"
+              placeholder="Leave blank to publish now" />
+          </div>
+          <button onclick="confirmYTUpload()"
+            style="background:#FF0000;color:#fff;border:none;cursor:pointer;padding:10px 20px;border-radius:10px;font-size:0.9rem;font-weight:600;margin-top:4px">
+            🚀 Confirm Upload
+          </button>
+          <div id="ytStatus" style="font-size:0.8rem;color:var(--muted);text-align:center"></div>
+        </div>
       </div>
     </div>
 
@@ -779,6 +810,69 @@
 
   function downloadVideo() {
     if (currentJobId) window.open(`/api/short-download/${currentJobId}`, '_blank');
+  }
+
+  // ── YouTube upload ────────────────────────────────────────────────────────────
+  async function uploadToYouTube() {
+    const panel = el('ytPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+
+    if (panel.style.display === 'block') {
+      // Check auth status
+      const status = await fetch('/api/youtube-auth-status').then(r => r.json()).catch(() => ({}));
+      const ytStatus = el('ytStatus');
+      if (!status.hasOAuth) {
+        ytStatus.style.color = '#ef4444';
+        ytStatus.textContent = '⚠️ No .youtube-oauth.json found. See setup instructions.';
+      } else if (!status.hasToken) {
+        ytStatus.style.color = '#f59e0b';
+        ytStatus.textContent = '⚠️ Not logged in. Run: node scripts/youtube-upload.mjs --auth';
+      } else {
+        ytStatus.style.color = '#10b981';
+        ytStatus.textContent = '✅ YouTube connected and ready to upload';
+      }
+    }
+  }
+
+  async function confirmYTUpload() {
+    const ytStatus   = el('ytStatus');
+    const privacyVal = el('ytPrivacy').value;
+    const scheduleVal = el('ytSchedule').value;
+
+    // Convert local datetime to ISO-8601 UTC
+    const scheduleISO = scheduleVal
+      ? new Date(scheduleVal).toISOString()
+      : null;
+
+    ytStatus.style.color  = 'var(--muted)';
+    ytStatus.textContent  = '⏳ Uploading to YouTube…';
+
+    try {
+      const res = await fetch('/api/youtube-upload', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId:      currentJobId,
+          privacy:    privacyVal,
+          scheduleAt: scheduleISO,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        ytStatus.style.color = '#ef4444';
+        ytStatus.textContent = `❌ ${data.error}`;
+        return;
+      }
+
+      ytStatus.style.color = '#10b981';
+      ytStatus.innerHTML   = data.youtubeUrl
+        ? `✅ Uploaded! <a href="${data.youtubeUrl}" target="_blank" style="color:#ff6666">${data.youtubeUrl}</a>`
+        : '✅ Uploaded successfully!';
+    } catch (err) {
+      ytStatus.style.color = '#ef4444';
+      ytStatus.textContent = `❌ ${err.message}`;
+    }
   }
 
   function resetToIdle() {

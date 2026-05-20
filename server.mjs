@@ -448,6 +448,95 @@ app.get('/api/latest-video', (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// YOUTUBE UPLOAD API
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/youtube-auth-status — check if OAuth token exists ────────────────
+app.get('/api/youtube-auth-status', (_req, res) => {
+  const tokenFile = path.join(__dirname, '.youtube-token.json');
+  const oauthFile = path.join(__dirname, '.youtube-oauth.json');
+  res.json({
+    hasOAuth: fs.existsSync(oauthFile),
+    hasToken: fs.existsSync(tokenFile),
+  });
+});
+
+// ── POST /api/youtube-upload — upload a rendered video to YouTube ─────────────
+app.post('/api/youtube-upload', async (req, res) => {
+  const { jobId, scheduleAt, privacy = 'public' } = req.body;
+
+  // Find the video file
+  let videoPath = null;
+  if (jobId) {
+    // Scan renders/ for the most recent FINAL mp4 (same as findVideoForJob)
+    const rendersDir = path.join(PUBLIC_DIR, 'renders');
+    try {
+      const files = fs.readdirSync(rendersDir)
+        .filter(f => f.endsWith('.mp4'))
+        .map(f => ({ f, mtime: fs.statSync(path.join(rendersDir, f)).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime);
+      const final = files.find(({ f }) => f.includes('-FINAL') || f.includes('-raw'));
+      if (final) videoPath = path.join(rendersDir, final.f);
+    } catch {}
+  }
+
+  if (!videoPath || !fs.existsSync(videoPath)) {
+    return res.status(404).json({ error: 'No rendered video found. Generate a short first.' });
+  }
+
+  // Find matching script JSON
+  let scriptPath = null;
+  try {
+    const files = fs.readdirSync(PUBLIC_DIR)
+      .filter(f => f.endsWith('-script.json'))
+      .map(f => ({ f, mtime: fs.statSync(path.join(PUBLIC_DIR, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    if (files.length) scriptPath = path.join(PUBLIC_DIR, files[0].f);
+  } catch {}
+
+  const uploadArgs = [
+    'scripts/youtube-upload.mjs',
+    '--file', videoPath,
+    '--privacy', scheduleAt ? 'private' : privacy,
+  ];
+  if (scriptPath) uploadArgs.push('--script', scriptPath);
+  if (scheduleAt) uploadArgs.push('--schedule', scheduleAt);
+
+  try {
+    const { stdout } = await execAsync(
+      `node ${uploadArgs.map(a => JSON.stringify(a)).join(' ')}`,
+      { cwd: __dirname, timeout: 5 * 60 * 1000 },
+    );
+    // Extract YouTube URL from output
+    const urlMatch = stdout.match(/https:\/\/www\.youtube\.com\/shorts\/[\w-]+/);
+    const idMatch  = stdout.match(/Video ID:\s+([\w-]+)/);
+    res.json({
+      success:  true,
+      youtubeUrl: urlMatch?.[0] ?? null,
+      videoId:    idMatch?.[1]  ?? null,
+      output:     stdout.slice(0, 1000),
+    });
+  } catch (err) {
+    const msg = err.stderr || err.stdout || err.message;
+    if (msg.includes('Not authenticated') || msg.includes('--auth')) {
+      return res.status(401).json({ error: 'YouTube not connected. Run: node scripts/youtube-upload.mjs --auth' });
+    }
+    res.status(500).json({ error: msg.slice(0, 500) });
+  }
+});
+
+// ── GET /api/youtube-log — recent upload history ──────────────────────────────
+app.get('/api/youtube-log', (_req, res) => {
+  const logFile = path.join(__dirname, '.youtube-upload-log.json');
+  if (!fs.existsSync(logFile)) return res.json([]);
+  try {
+    res.json(JSON.parse(fs.readFileSync(logFile, 'utf8')).slice(0, 50));
+  } catch {
+    res.json([]);
+  }
+});
+
 const PORT = process.env.PORT ?? 3131;
 app.listen(PORT, () => {
   console.log(`\n  Video Subtitle App  →  http://localhost:${PORT}`);
