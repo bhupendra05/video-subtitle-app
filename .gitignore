@@ -10,3 +10,6 @@ dist/
 *.mp4
 *.wav
 *.mp3
+public/*-script.json
+public/images/
+public/broll/

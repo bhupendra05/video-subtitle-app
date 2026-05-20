@@ -212,7 +212,244 @@ app.get('/api/download/:jobId', (req, res) => {
   res.download(path.join(PUBLIC_DIR, 'renders', job.outputFilename), 'video-with-subtitles.mp4');
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// AI SHORTS GENERATION API
+// ══════════════════════════════════════════════════════════════════════════════
+
+const { spawn } = await import('child_process');
+const shortJobs = new Map();   // jobId → { status, log[], script, videoPath, ... }
+
+// ── POST /api/generate-short — kick off the pipeline ──────────────────────────
+app.post('/api/generate-short', (req, res) => {
+  const { topic, voice = 'en-US-AriaNeural', colorScheme, useImages = true, useGrade = true } = req.body;
+  if (!topic?.trim()) return res.status(400).json({ error: 'topic is required' });
+
+  const jobId = Date.now().toString();
+  shortJobs.set(jobId, {
+    status: 'running', step: 'script', logs: [],
+    topic, voice, colorScheme, useImages, useGrade,
+    script: null, videoPath: null, error: null,
+  });
+
+  // Build CLI command
+  const args = ['scripts/create-short.mjs', '--topic', topic, '--voice', voice];
+  if (colorScheme) args.push('--color', colorScheme);
+  if (useImages) args.push('--images');
+  if (!useGrade) args.push('--no-grade');
+
+  const child = spawn('node', args, {
+    cwd: __dirname,
+    env: { ...process.env },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  const job = shortJobs.get(jobId);
+
+  const pushLog = (line) => {
+    job.logs.push({ ts: Date.now(), text: line });
+    // Keep last 200 log lines
+    if (job.logs.length > 200) job.logs.shift();
+    // Detect step from log output
+    if (line.includes('Step 1')) job.step = 'script';
+    else if (line.includes('Step 2')) job.step = 'tts';
+    else if (line.includes('Step 3')) job.step = 'transcribe';
+    else if (line.includes('Step 4')) job.step = 'images';
+    else if (line.includes('Step 5')) job.step = 'broll';
+    else if (line.includes('Step 6') || line.includes('Remotion render')) job.step = 'render';
+    else if (line.includes('Step 7') || line.includes('cinematic')) job.step = 'grade';
+    // Detect script JSON in stdout (create-short writes it to SCRIPT_JSON, not stdout)
+    // Detect final output path — capture full "renders/filename.mp4" so URL is correct
+    if (line.includes('.mp4')) {
+      // Match "public/renders/something.mp4" and keep "renders/something.mp4"
+      const match = line.match(/public\/(renders\/[^\s'"]+\.mp4)/);
+      if (match) job.videoPath = match[1];
+    }
+  };
+
+  let stdoutBuf = '', stderrBuf = '';
+  child.stdout.on('data', (d) => {
+    stdoutBuf += d.toString();
+    stdoutBuf.split('\n').filter(Boolean).forEach(pushLog);
+    stdoutBuf = '';
+  });
+  child.stderr.on('data', (d) => {
+    stderrBuf += d.toString();
+    const lines = stderrBuf.split('\n');
+    stderrBuf = lines.pop() || '';
+    lines.filter(Boolean).forEach(pushLog);
+  });
+
+  child.on('close', (code) => {
+    if (stderrBuf) pushLog(stderrBuf);
+    if (code === 0) {
+      job.status = 'done';
+      job.step   = 'done';
+      // Fallback: scan renders/ for the newest video if regex didn't match
+      if (!job.videoPath || !fs.existsSync(path.join(PUBLIC_DIR, job.videoPath))) {
+        const rendersDir = path.join(PUBLIC_DIR, 'renders');
+        try {
+          const files = fs.readdirSync(rendersDir)
+            .filter(f => f.endsWith('.mp4'))
+            .map(f => ({ f, mtime: fs.statSync(path.join(rendersDir, f)).mtimeMs }))
+            .sort((a, b) => b.mtime - a.mtime);
+          if (files.length) job.videoPath = `renders/${files[0].f}`;
+        } catch {}
+      }
+    } else {
+      job.status = 'error';
+      job.error  = `Pipeline exited with code ${code}`;
+    }
+  });
+
+  res.json({ jobId });
+});
+
+// ── GET /api/short-progress/:jobId — SSE stream ────────────────────────────────
+app.get('/api/short-progress/:jobId', (req, res) => {
+  const job = shortJobs.get(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  let lastLogIdx = 0;
+
+  const tick = () => {
+    // Send any new log lines
+    const newLogs = job.logs.slice(lastLogIdx);
+    lastLogIdx = job.logs.length;
+    for (const logEntry of newLogs) {
+      send({ log: logEntry.text });
+    }
+
+    // Send current step
+    send({ step: job.step, label: job.step });
+
+    // Send script if available and not yet sent
+    if (job.script) {
+      send({ script: job.script });
+      job.script = null; // send once
+    }
+
+    if (job.status === 'done') {
+      // Use the dedicated streaming endpoint — works even after server restarts
+      const videoUrl = `/api/short-video/${req.params.jobId}`;
+      // Try to load script from file
+      let script = null;
+      try {
+        const renders = path.join(PUBLIC_DIR, 'renders');
+        // find matching script json
+        const scriptFiles = fs.readdirSync(path.join(__dirname, 'public'))
+          .filter(f => f.endsWith('-script.json'))
+          .map(f => ({ f, mtime: fs.statSync(path.join(__dirname, 'public', f)).mtimeMs }))
+          .sort((a, b) => b.mtime - a.mtime);
+        if (scriptFiles.length) {
+          script = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', scriptFiles[0].f), 'utf8'));
+        }
+      } catch {}
+
+      send({ status: 'done', step: 'done', videoPath: job.videoPath, videoUrl, script });
+      res.end();
+      clearInterval(timer);
+    } else if (job.status === 'error') {
+      send({ status: 'error', message: job.error || 'Unknown error' });
+      res.end();
+      clearInterval(timer);
+    }
+  };
+
+  // Flush immediately, then poll
+  tick();
+  const timer = setInterval(tick, 800);
+
+  req.on('close', () => clearInterval(timer));
+});
+
+// ── GET /api/short-video/:jobId — stream video (survives server restarts) ────
+// Finds the video by scanning renders/ for files matching the jobId timestamp.
+// Falls back to the in-memory job map if available.
+function findVideoForJob(jobId) {
+  // 1. Check in-memory job map first
+  const job = shortJobs.get(jobId);
+  if (job?.videoPath) {
+    const full = path.join(PUBLIC_DIR, job.videoPath);
+    if (fs.existsSync(full)) return full;
+  }
+  // 2. Scan renders/ for files that start with the jobId (timestamp)
+  const rendersDir = path.join(PUBLIC_DIR, 'renders');
+  try {
+    const files = fs.readdirSync(rendersDir)
+      .filter(f => f.endsWith('.mp4'))
+      .map(f => ({ f, mtime: fs.statSync(path.join(rendersDir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    // Prefer FINAL over raw
+    const final = files.find(({ f }) => f.includes('-FINAL'));
+    const target = final ?? files[0];
+    if (target) return path.join(rendersDir, target.f);
+  } catch {}
+  return null;
+}
+
+app.get('/api/short-video/:jobId', (req, res) => {
+  const videoPath = findVideoForJob(req.params.jobId);
+  if (!videoPath) return res.status(404).json({ error: 'Video not found' });
+  // Stream with range support so browser can seek
+  const stat = fs.statSync(videoPath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end   = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunkSize = end - start + 1;
+    res.writeHead(206, {
+      'Content-Range':  `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges':  'bytes',
+      'Content-Length': chunkSize,
+      'Content-Type':   'video/mp4',
+    });
+    fs.createReadStream(videoPath, { start, end }).pipe(res);
+  } else {
+    res.writeHead(200, {
+      'Content-Length': fileSize,
+      'Content-Type':   'video/mp4',
+      'Accept-Ranges':  'bytes',
+    });
+    fs.createReadStream(videoPath).pipe(res);
+  }
+});
+
+// ── GET /api/short-download/:jobId — force-download final video ───────────────
+app.get('/api/short-download/:jobId', (req, res) => {
+  const videoPath = findVideoForJob(req.params.jobId);
+  if (!videoPath) return res.status(404).json({ error: 'Video not found' });
+  const job  = shortJobs.get(req.params.jobId);
+  const slug = (job?.topic || 'short').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+  res.download(videoPath, `${slug}.mp4`);
+});
+
+// ── GET /api/latest-video — serve the most recently rendered video ────────────
+app.get('/api/latest-video', (req, res) => {
+  const rendersDir = path.join(PUBLIC_DIR, 'renders');
+  try {
+    const files = fs.readdirSync(rendersDir)
+      .filter(f => f.endsWith('.mp4'))
+      .map(f => ({ f, mtime: fs.statSync(path.join(rendersDir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    if (!files.length) return res.status(404).json({ error: 'No videos yet' });
+    res.json({ url: `/public/renders/${files[0].f}`, filename: files[0].f });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT ?? 3131;
 app.listen(PORT, () => {
-  console.log(`\n  Video Subtitle App  →  http://localhost:${PORT}\n`);
+  console.log(`\n  Video Subtitle App  →  http://localhost:${PORT}`);
+  console.log(`  AI Shorts Studio   →  http://localhost:${PORT}/studio.html\n`);
 });

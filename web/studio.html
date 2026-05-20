@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Shorts Studio</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #07070f;
+      --surface: #0f0f1c;
+      --surface2: #16162a;
+      --border: #2a2a42;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --text: #e8e8f4;
+      --muted: #6b6b88;
+      --success: #10b981;
+      --error: #ef4444;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      grid-template-rows: 64px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────────── */
+    header {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-badge {
+      background: var(--accent); color: #fff;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      padding: 2px 7px; border-radius: 6px; text-transform: uppercase;
+      -webkit-text-fill-color: #fff;
+    }
+
+    header .spacer { flex: 1; }
+
+    .nav-link {
+      color: var(--muted); text-decoration: none; font-size: 0.875rem;
+      padding: 6px 14px; border-radius: 8px; transition: all .15s;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: var(--text); background: var(--surface2);
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────────────────── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 20px;
+      overflow-y: auto;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* Topic area */
+    .topic-wrap { position: relative; }
+
+    textarea {
+      width: 100%; min-height: 100px; resize: vertical;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: 1rem; padding: 14px 16px;
+      font-family: inherit; line-height: 1.5;
+      transition: border-color .2s;
+      outline: none;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    .ai-badge {
+      position: absolute; top: 10px; right: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; font-size: 10px; font-weight: 700;
+      letter-spacing: 1px; padding: 2px 8px; border-radius: 5px;
+    }
+
+    /* Color scheme grid */
+    .scheme-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+
+    .scheme-btn {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 10px 12px; border-radius: 10px;
+      border: 2px solid var(--border);
+      background: var(--surface2); cursor: pointer;
+      transition: all .15s; text-align: left;
+    }
+    .scheme-btn:hover { border-color: var(--muted); }
+    .scheme-btn.active { border-color: var(--accent); background: var(--accent)11; }
+
+    .scheme-dot {
+      width: 28px; height: 6px; border-radius: 3px; margin-bottom: 4px;
+    }
+    .scheme-name { font-size: 12px; font-weight: 600; color: var(--text); }
+    .scheme-desc { font-size: 10px; color: var(--muted); }
+
+    /* Voice selector */
+    select {
+      width: 100%; padding: 11px 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: 0.875rem; font-family: inherit; outline: none;
+      cursor: pointer; transition: border-color .2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6b88'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+    select:focus { border-color: var(--accent); }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0;
+    }
+    .toggle-info .toggle-title { font-size: 0.875rem; font-weight: 600; }
+    .toggle-info .toggle-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .toggle {
+      position: relative; width: 44px; height: 24px;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: var(--border); border-radius: 12px;
+      transition: background .2s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #fff; top: 3px; left: 3px;
+      transition: transform .2s;
+    }
+    .toggle input:checked + .slider { background: var(--accent); }
+    .toggle input:checked + .slider::before { transform: translateX(20px); }
+
+    /* Generate button */
+    .btn-generate {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--accent), #9333ea);
+      border: none; border-radius: var(--radius);
+      color: #fff; font-size: 1rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.5px;
+      transition: opacity .15s, transform .1s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-generate:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-generate:active:not(:disabled) { transform: translateY(0); }
+    .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Main area ───────────────────────────────────────────────────────────── */
+    .main {
+      padding: 32px;
+      display: flex; flex-direction: column; align-items: center;
+      overflow-y: auto;
+    }
+
+    /* Idle state */
+    .idle-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; gap: 16px;
+    }
+
+    .idle-icon {
+      width: 96px; height: 96px; border-radius: 24px;
+      background: linear-gradient(135deg, var(--accent)22, var(--accent2)22);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 44px;
+    }
+
+    .idle-title { font-size: 1.5rem; font-weight: 700; }
+    .idle-sub { color: var(--muted); font-size: 0.9rem; max-width: 320px; line-height: 1.6; }
+
+    /* Progress */
+    .progress-card {
+      width: 100%; max-width: 520px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 18px; padding: 28px;
+      display: none; flex-direction: column; gap: 20px;
+    }
+    .progress-card.visible { display: flex; }
+
+    .progress-header {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .spinner {
+      width: 24px; height: 24px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.8s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-title { font-weight: 700; font-size: 1rem; }
+    .progress-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .progress-bar-wrap {
+      background: var(--surface2); border-radius: 8px; height: 8px; overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%; border-radius: 8px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.6s ease;
+    }
+
+    .progress-steps { display: flex; flex-direction: column; gap: 8px; }
+
+    .step-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.875rem; color: var(--muted);
+      padding: 6px 0;
+    }
+    .step-row.done { color: var(--success); }
+    .step-row.active { color: var(--text); font-weight: 600; }
+    .step-row.error { color: var(--error); }
+
+    .step-icon { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; }
+    .step-spinner {
+      width: 16px; height: 16px; border: 2px solid var(--border);
+      border-top-color: var(--accent2); border-radius: 50%;
+      animation: spin 0.8s linear infinite; flex-shrink: 0;
+    }
+
+    .log-box {
+      background: var(--surface2); border-radius: 10px; padding: 12px 14px;
+      font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px;
+      color: var(--muted); max-height: 120px; overflow-y: auto;
+      line-height: 1.6;
+    }
+    .log-line { opacity: 0.8; }
+    .log-line.active { opacity: 1; color: var(--accent2); }
+
+    /* Result card */
+    .result-card {
+      width: 100%; max-width: 520px;
+      background: var(--surface); border: 1px solid #10b98133;
+      border-radius: 18px; padding: 28px;
+      display: none; flex-direction: column; gap: 20px;
+    }
+    .result-card.visible { display: flex; }
+
+    .result-header {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .result-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: #10b98122; border: 1px solid #10b98144;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .result-title { font-weight: 700; font-size: 1.1rem; color: var(--success); }
+    .result-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .video-preview {
+      width: 100%; border-radius: 12px; overflow: hidden;
+      background: #000; aspect-ratio: 9/16;
+      max-height: 480px; display: flex; align-items: center; justify-content: center;
+    }
+    .video-preview video {
+      width: 100%; height: 100%; object-fit: contain;
+    }
+
+    .result-actions { display: flex; gap: 10px; }
+
+    .btn {
+      flex: 1; padding: 12px 18px;
+      border-radius: 10px; border: none;
+      font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #9333ea);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary {
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--border); }
+
+    /* Script preview */
+    .script-preview {
+      background: var(--surface2); border-radius: 12px;
+      padding: 16px 18px; font-size: 0.85rem;
+      color: var(--text); line-height: 1.6;
+      border: 1px solid var(--border);
+    }
+    .script-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+    }
+
+    /* Error banner */
+    .error-banner {
+      width: 100%; max-width: 520px;
+      background: #ef444415; border: 1px solid #ef444444;
+      border-radius: 12px; padding: 16px 18px;
+      color: var(--error); font-size: 0.875rem; line-height: 1.5;
+      display: none;
+    }
+    .error-banner.visible { display: block; }
+
+    /* History */
+    .history-item {
+      padding: 10px 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--surface2);
+      cursor: pointer; transition: border-color .15s;
+      font-size: 0.875rem;
+    }
+    .history-item:hover { border-color: var(--accent); }
+    .history-topic { font-weight: 600; }
+    .history-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; grid-template-rows: 64px auto 1fr; }
+      .sidebar { max-height: 400px; }
+      .main { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">🎬 AI Shorts Studio</div>
+    <span class="logo-badge">FREE</span>
+    <div class="spacer"></div>
+    <a href="/" class="nav-link">Subtitle Tool</a>
+    <a href="/studio.html" class="nav-link active">AI Shorts</a>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- Topic -->
+    <div>
+      <div class="section-label">Your Topic</div>
+      <div class="topic-wrap">
+        <textarea
+          id="topicInput"
+          placeholder="e.g. How Bitcoin will hit $1M by 2030..."
+          rows="4"
+        ></textarea>
+        <div class="ai-badge">AI</div>
+      </div>
+    </div>
+
+    <!-- Color scheme -->
+    <div>
+      <div class="section-label">Color Scheme</div>
+      <div class="scheme-grid">
+        <button class="scheme-btn active" data-scheme="teal-gold" onclick="selectScheme(this)">
+          <div class="scheme-dot" style="background: linear-gradient(90deg, #FFD700, #00E5FF)"></div>
+          <div class="scheme-name">Teal Gold</div>
+          <div class="scheme-desc">Finance & Crypto</div>
+        </button>
+        <button class="scheme-btn" data-scheme="cyber-green" onclick="selectScheme(this)">
+          <div class="scheme-dot" style="background: linear-gradient(90deg, #00FF88, #00D4FF)"></div>
+          <div class="scheme-name">Cyber Green</div>
+          <div class="scheme-desc">Tech & AI</div>
+        </button>
+        <button class="scheme-btn" data-scheme="fire-red" onclick="selectScheme(this)">
+          <div class="scheme-dot" style="background: linear-gradient(90deg, #FF4500, #FFB800)"></div>
+          <div class="scheme-name">Fire Red</div>
+          <div class="scheme-desc">Urgent & Health</div>
+        </button>
+        <button class="scheme-btn" data-scheme="electric-blue" onclick="selectScheme(this)">
+          <div class="scheme-dot" style="background: linear-gradient(90deg, #4DB8FF, #C084FC)"></div>
+          <div class="scheme-name">Electric Blue</div>
+          <div class="scheme-desc">Space & Future</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Voice -->
+    <div>
+      <div class="section-label">Voice</div>
+      <select id="voiceSelect">
+        <option value="en-US-AriaNeural">🇺🇸 Aria — Natural, warm</option>
+        <option value="en-US-GuyNeural">🇺🇸 Guy — Confident, deep</option>
+        <option value="en-US-JennyNeural">🇺🇸 Jenny — Friendly, clear</option>
+        <option value="en-US-EricNeural">🇺🇸 Eric — Calm, professional</option>
+        <option value="en-US-MichelleNeural">🇺🇸 Michelle — Bright, energetic</option>
+        <option value="en-US-RogerNeural">🇺🇸 Roger — Smooth, podcast</option>
+        <option value="en-GB-SoniaNeural">🇬🇧 Sonia — British, polished</option>
+        <option value="en-GB-RyanNeural">🇬🇧 Ryan — British, crisp</option>
+        <option value="en-AU-NatashaNeural">🇦🇺 Natasha — Australian, clear</option>
+        <option value="en-IN-NeerjaNeural">🇮🇳 Neerja — Indian English</option>
+      </select>
+    </div>
+
+    <!-- Options -->
+    <div>
+      <div class="section-label">Options</div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Generate Images</div>
+          <div class="toggle-sub">AI cinematic visuals (Pollinations FLUX)</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="useImages" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Cinematic Grade</div>
+          <div class="toggle-sub">FFmpeg color correction</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="useGrade" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Generate button -->
+    <button class="btn-generate" id="generateBtn" onclick="generateShort()">
+      <span>🚀</span>
+      <span>Generate Short</span>
+    </button>
+
+    <!-- History -->
+    <div id="historySection" style="display:none">
+      <div class="section-label">Recent</div>
+      <div id="historyList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+  </aside>
+
+  <!-- Main content -->
+  <main class="main" id="mainArea">
+
+    <!-- Idle state -->
+    <div class="idle-state" id="idleState">
+      <div class="idle-icon">🎬</div>
+      <div class="idle-title">AI Shorts Studio</div>
+      <div class="idle-sub">
+        Type a topic, pick a style, and hit Generate.<br/>
+        Gemini writes the script, Edge-TTS narrates, Whisper transcribes,<br/>
+        Remotion renders — all free.
+      </div>
+      <div style="display:flex;gap:32px;margin-top:16px">
+        <div style="text-align:center">
+          <div style="font-size:28px">✍️</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">AI Script</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:28px">🎙️</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Neural Voice</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:28px">🖼️</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">AI Images</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:28px">🎬</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Remotion Render</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress card -->
+    <div class="progress-card" id="progressCard">
+      <div class="progress-header">
+        <div class="spinner" id="progressSpinner"></div>
+        <div>
+          <div class="progress-title" id="progressTitle">Starting pipeline…</div>
+          <div class="progress-sub" id="progressSub">Connecting to AI services</div>
+        </div>
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progressBar" style="width:0%"></div>
+      </div>
+
+      <div class="progress-steps" id="progressSteps"></div>
+
+      <div class="log-box" id="logBox">
+        <div class="log-line">Initializing…</div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-banner" id="errorBanner"></div>
+
+    <!-- Result card -->
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div class="result-icon">✅</div>
+        <div>
+          <div class="result-title">Short Created!</div>
+          <div class="result-sub" id="resultMeta">Ready to upload</div>
+        </div>
+      </div>
+
+      <div id="scriptDisplay"></div>
+
+      <div class="video-preview" id="videoPreview" style="display:none">
+        <video id="videoEl" controls playsinline></video>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-primary" id="downloadBtn" onclick="downloadVideo()">
+          ⬇️ Download
+        </button>
+        <button class="btn btn-secondary" onclick="resetToIdle()">
+          🔄 New Short
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let selectedScheme = 'teal-gold';
+  let currentJobId   = null;
+  let currentVideoPath = null;
+  let eventSource    = null;
+  const history      = JSON.parse(localStorage.getItem('shorts-history') || '[]');
+
+  const PIPELINE_STEPS = [
+    { key: 'script',      label: '✍️  Generating script via Gemini',    pct: 12 },
+    { key: 'tts',         label: '🎙️  Synthesising voice (Edge-TTS)',    pct: 28 },
+    { key: 'transcribe',  label: '📝  Transcribing with Whisper',        pct: 42 },
+    { key: 'images',      label: '🖼️  Generating cinematic images',      pct: 58 },
+    { key: 'render',      label: '🎬  Rendering with Remotion',          pct: 78 },
+    { key: 'grade',       label: '🎨  Applying cinematic grade',         pct: 92 },
+    { key: 'done',        label: '✅  Video ready!',                     pct: 100 },
+  ];
+
+  // ── UI helpers ──────────────────────────────────────────────────────────────
+  function show(id)  { document.getElementById(id).classList.add('visible');    }
+  function hide(id)  { document.getElementById(id).classList.remove('visible'); }
+  function el(id)    { return document.getElementById(id); }
+
+  function selectScheme(btn) {
+    document.querySelectorAll('.scheme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedScheme = btn.dataset.scheme;
+  }
+
+  function renderSteps(activeKey) {
+    const container = el('progressSteps');
+    container.innerHTML = '';
+    for (const step of PIPELINE_STEPS) {
+      const row = document.createElement('div');
+      const isPast    = PIPELINE_STEPS.findIndex(s => s.key === step.key)
+                       < PIPELINE_STEPS.findIndex(s => s.key === activeKey);
+      const isCurrent = step.key === activeKey;
+      row.className = 'step-row' + (isPast ? ' done' : isCurrent ? ' active' : '');
+      if (isPast) {
+        row.innerHTML = `<span class="step-icon">✓</span> ${step.label}`;
+      } else if (isCurrent) {
+        row.innerHTML = `<div class="step-spinner"></div> ${step.label}`;
+      } else {
+        row.innerHTML = `<span class="step-icon" style="color:var(--border)">○</span> ${step.label}`;
+      }
+      container.appendChild(row);
+    }
+  }
+
+  function appendLog(text) {
+    const box = el('logBox');
+    const line = document.createElement('div');
+    line.className = 'log-line active';
+    line.textContent = text;
+    // Dim previous active lines
+    box.querySelectorAll('.log-line.active').forEach(l => l.classList.remove('active'));
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+    // Keep max 50 lines
+    while (box.children.length > 50) box.removeChild(box.firstChild);
+  }
+
+  // ── Generate short ──────────────────────────────────────────────────────────
+  async function generateShort() {
+    const topic = el('topicInput').value.trim();
+    if (!topic) {
+      el('topicInput').focus();
+      el('topicInput').style.borderColor = 'var(--error)';
+      setTimeout(() => el('topicInput').style.borderColor = '', 1500);
+      return;
+    }
+
+    const voice      = el('voiceSelect').value;
+    const useImages  = el('useImages').checked;
+    const useGrade   = el('useGrade').checked;
+
+    // Reset UI
+    el('idleState').style.display  = 'none';
+    el('errorBanner').classList.remove('visible');
+    el('resultCard').classList.remove('visible');
+    show('progressCard');
+    el('generateBtn').disabled = true;
+    el('logBox').innerHTML = '';
+
+    renderSteps('script');
+    el('progressBar').style.width = '5%';
+    el('progressTitle').textContent = 'Starting AI pipeline…';
+    el('progressSub').textContent = topic;
+
+    try {
+      // Start job
+      const resp = await fetch('/api/generate-short', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, voice, colorScheme: selectedScheme, useImages, useGrade }),
+      });
+      if (!resp.ok) throw new Error((await resp.json()).error || 'Failed to start');
+      const { jobId } = await resp.json();
+      currentJobId = jobId;
+
+      // SSE progress
+      connectProgress(jobId, topic);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  function connectProgress(jobId, topic) {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource(`/api/short-progress/${jobId}`);
+
+    eventSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+
+      if (data.log) {
+        appendLog(data.log);
+      }
+
+      if (data.step) {
+        renderSteps(data.step);
+        const pct = PIPELINE_STEPS.find(s => s.key === data.step)?.pct ?? 5;
+        el('progressBar').style.width = pct + '%';
+        if (data.label) {
+          el('progressTitle').textContent = data.label;
+        }
+      }
+
+      if (data.script) {
+        // Show script preview
+        const div = el('scriptDisplay') || document.createElement('div');
+        div.id = 'scriptDisplay';
+        div.innerHTML = `
+          <div class="script-preview">
+            <div class="script-label">Script Generated by Gemini</div>
+            <strong>${data.script.titleCard?.headline || ''}</strong><br/>
+            <em style="font-size:11px;color:var(--muted)">${data.script.titleCard?.subline || ''}</em>
+            <p style="margin-top:10px">${data.script.narration || ''}</p>
+          </div>
+        `;
+      }
+
+      if (data.status === 'done') {
+        eventSource.close();
+        currentVideoPath = data.videoPath;
+        showResult(jobId, topic, data);
+      }
+
+      if (data.status === 'error') {
+        eventSource.close();
+        showError(data.message || 'Pipeline failed');
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      showError('Lost connection to server. Check the terminal for errors.');
+    };
+  }
+
+  // ── Load video into player with error handling ────────────────────────────
+  function loadVideo(url, jobId) {
+    const videoEl = el('videoEl');
+    const preview = el('videoPreview');
+
+    // Always use the dedicated streaming endpoint if we have a jobId
+    const src = jobId ? `/api/short-video/${jobId}` : url;
+    if (!src) { console.warn('No video src available'); return; }
+
+    preview.style.display = 'flex';
+    videoEl.src = src;
+
+    videoEl.onerror = async () => {
+      console.warn('Video load error, trying latest-video fallback…');
+      // If jobId-specific fails, try the latest video
+      try {
+        const r = await fetch('/api/latest-video');
+        if (r.ok) {
+          const { url: fallback } = await r.json();
+          videoEl.src = fallback;
+        }
+      } catch {}
+    };
+
+    videoEl.load();
+  }
+
+  function showResult(jobId, topic, data) {
+    hide('progressCard');
+
+    el('resultMeta').textContent = `${topic} · ${new Date().toLocaleTimeString()}`;
+
+    if (data.script) {
+      el('scriptDisplay').innerHTML = `
+        <div class="script-preview">
+          <div class="script-label">Script</div>
+          <strong>${data.script.titleCard?.headline || ''}</strong><br/>
+          <em style="font-size:11px;color:var(--muted)">${data.script.titleCard?.subline || ''}</em>
+          <p style="margin-top:10px">${data.script.narration || ''}</p>
+        </div>
+      `;
+    }
+
+    loadVideo(data.videoUrl, jobId);
+
+    show('resultCard');
+    el('generateBtn').disabled = false;
+
+    // Save to history (always store jobId for video lookup)
+    history.unshift({ jobId, topic, ts: Date.now(), videoUrl: `/api/short-video/${jobId}` });
+    if (history.length > 10) history.pop();
+    localStorage.setItem('shorts-history', JSON.stringify(history));
+    renderHistory();
+  }
+
+  function showError(msg) {
+    hide('progressCard');
+    const banner = el('errorBanner');
+    banner.innerHTML = `<strong>❌ Pipeline Error</strong><br/>${msg}`;
+    banner.classList.add('visible');
+    el('generateBtn').disabled = false;
+    el('idleState').style.display = 'flex';
+  }
+
+  function downloadVideo() {
+    if (currentJobId) window.open(`/api/short-download/${currentJobId}`, '_blank');
+  }
+
+  function resetToIdle() {
+    hide('resultCard');
+    hide('progressCard');
+    el('errorBanner').classList.remove('visible');
+    el('idleState').style.display = 'flex';
+    el('generateBtn').disabled = false;
+    el('videoEl').src = '';
+    el('videoPreview').style.display = 'none';
+    currentJobId = null;
+    currentVideoPath = null;
+  }
+
+  // ── History ─────────────────────────────────────────────────────────────────
+  function renderHistory() {
+    if (!history.length) return;
+    el('historySection').style.display = 'block';
+    const list = el('historyList');
+    list.innerHTML = '';
+    history.slice(0, 5).forEach(h => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="history-topic">${(h.topic || '').slice(0, 50)}</div>
+        <div class="history-meta">${new Date(h.ts).toLocaleDateString()}</div>
+      `;
+      item.onclick = () => {
+        resetToIdle();
+        el('idleState').style.display = 'none';
+        currentJobId = h.jobId;
+        el('scriptDisplay').innerHTML = '';
+        el('resultMeta').textContent = h.topic;
+        loadVideo(h.videoUrl, h.jobId);
+        show('resultCard');
+      };
+      list.appendChild(item);
+    });
+  }
+
+  // On load: show latest video if there's recent history
+  renderHistory();
+</script>
+
+</body>
+</html>
