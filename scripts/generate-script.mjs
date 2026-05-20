@@ -48,7 +48,7 @@ if (!topic) {
 }
 
 // ── Prompt ───────────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are an expert YouTube Shorts scriptwriter. You create viral, cinematic short-form video scripts that are punchy, fast-paced, and emotionally engaging. Each script is exactly 50-60 seconds when read at a normal pace (110-130 words). Hook strong, build tension, land with urgency.`;
+const SYSTEM_PROMPT = `You are an elite YouTube Shorts scriptwriter creating VIRAL, emotionally charged content. Your scripts make viewers feel shock, urgency, excitement, or fear. You write like a news anchor who just uncovered a shocking truth and has 60 seconds to share it. Every word earns its place. You NEVER use filler. Hook in the FIRST 4 words. Build emotional tension. End with a gut punch that makes people comment and share.`;
 
 const USER_PROMPT = `Create a YouTube Shorts script about: "${topic}"
 
@@ -58,9 +58,9 @@ Return ONLY a valid JSON object with this exact shape (no markdown, no explanati
   "colorScheme": "cyber-green",
   "titleCard": {
     "headline": "3-4 WORD HEADLINE IN CAPS",
-    "subline": "One compelling sentence that hooks the viewer"
+    "subline": "One shocking sentence that makes viewers stop scrolling"
   },
-  "narration": "The full voiceover script, 110-130 words, punchy and fast-paced. No line breaks. Designed to be read in 50-60 seconds. Hook in first 5 words. Drop a stat mid-video. End with urgency.",
+  "narration": "ONE continuous paragraph, 110-130 words. NO line breaks, NO ellipsis. Written to be read in 50-60 seconds at a fast, urgent pace. Start with a shocking statement in the first 4 words. Build with facts and emotion. Drop a specific statistic mid-video. End with a call to action that creates urgency. Use active voice. Short punchy sentences. Make it feel URGENT.",
   "stats": [
     { "label": "STAT LABEL", "value": "NUMBER OR %" },
     { "label": "STAT LABEL", "value": "NUMBER OR %" },
@@ -71,13 +71,13 @@ Return ONLY a valid JSON object with this exact shape (no markdown, no explanati
 }
 
 Rules:
-- colorScheme must be one of: teal-gold, cyber-green, fire-red, electric-blue
-- Choose colorScheme based on topic mood (gold=finance/crypto, green=tech/AI, red=urgent/health, blue=space/future)
-- narration MUST be 110-130 words, punchy, no filler. Hook first, story middle, urgency end.
-- stats must have exactly 3 items with real or plausible compelling data
-- hashtags must be 5 items, no # prefix, relevant to the topic
-- cta must be a short call to action in CAPS (max 4 words)
-- headline must be 2-4 WORDS IN ALL CAPS
+- colorScheme must be one of: teal-gold, cyber-green, fire-red, electric-blue, solar, clean-blue
+- Choose colorScheme: gold=finance/crypto, green=tech/AI, red=urgent/health, blue=space/future, solar=motivation/lifestyle, clean-blue=business/news
+- narration MUST be 110-130 words, ONE paragraph, no newlines, fast-paced, high emotion
+- stats: exactly 3 items with real or plausible compelling numbers
+- hashtags: exactly 5 items, no # prefix
+- cta: short call to action in CAPS (max 4 words)
+- headline: 2-4 WORDS IN ALL CAPS, shocking or intriguing
 - Return ONLY the JSON object, nothing else`;
 
 // ── Gemini generator (primary) ───────────────────────────────────────────────

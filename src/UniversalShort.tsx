@@ -17,51 +17,75 @@ import {
 const { fontFamily: orbitron } = loadOrbitron('normal', { weights: ['400', '700', '900'] });
 const { fontFamily: bebas }    = loadBebas();
 
-// ── Color schemes ─────────────────────────────────────────────────────────────
+// ── Color schemes — dark + light themes ──────────────────────────────────────
 const SCHEMES = {
+  // ── DARK themes ──────────────────────────────────────────────────────────────
   'teal-gold': {
     bg: '#060418', bg2: '#0d0830',
-    accent: '#FFD700', secondary: '#00E5FF', text: '#FFFFFF',
+    accent: '#FFD700', secondary: '#00E5FF', text: '#FFFFFF', textDim: 'rgba(255,255,255,0.5)',
     glow: '#FFD700', particle: '#FFD700', matrix: '#FFD700',
     grad: 'linear-gradient(135deg,#FFD700 0%,#00E5FF 50%,#FFD700 100%)',
     bgGrad: 'radial-gradient(ellipse 100% 90% at 50% 20%, #1a0f3d 0%, #060418 60%, #000 100%)',
     glowOrbs: ['#FFD70033', '#00E5FF1a'],
     symbols: ['$', '💰', '📈', '▲', '✦', '◈', '⬡', '$'],
     chipBg: 'linear-gradient(120deg, #FFD700, #00E5FF)',
-    chipText: '#000',
+    chipText: '#000', isDark: true,
   },
   'cyber-green': {
     bg: '#030d10', bg2: '#071820',
-    accent: '#00FF88', secondary: '#00D4FF', text: '#FFFFFF',
+    accent: '#00FF88', secondary: '#00D4FF', text: '#FFFFFF', textDim: 'rgba(255,255,255,0.5)',
     glow: '#00FF88', particle: '#00FF88', matrix: '#00FF88',
     grad: 'linear-gradient(135deg,#00FF88 0%,#00D4FF 50%,#00FF88 100%)',
     bgGrad: 'radial-gradient(ellipse 100% 90% at 50% 20%, #051a14 0%, #030d10 55%, #000 100%)',
     glowOrbs: ['#00FF8822', '#00D4FF18'],
     symbols: ['⬡', '⬡', '◈', '∞', '✦', '▲', '◉', '⬡'],
     chipBg: 'linear-gradient(120deg, #00FF88, #00D4FF)',
-    chipText: '#000',
+    chipText: '#000', isDark: true,
   },
   'fire-red': {
     bg: '#110305', bg2: '#1f0508',
-    accent: '#FF4500', secondary: '#FFB800', text: '#FFFFFF',
+    accent: '#FF4500', secondary: '#FFB800', text: '#FFFFFF', textDim: 'rgba(255,255,255,0.5)',
     glow: '#FF6600', particle: '#FF4500', matrix: '#FF4500',
     grad: 'linear-gradient(135deg,#FF4500 0%,#FFB800 50%,#FF4500 100%)',
     bgGrad: 'radial-gradient(ellipse 100% 90% at 50% 20%, #2a0a00 0%, #110305 55%, #000 100%)',
     glowOrbs: ['#FF450025', '#FFB80015'],
     symbols: ['🔥', '▲', '⚡', '✦', '◈', '⬡', '★', '⚡'],
     chipBg: 'linear-gradient(120deg, #FF4500, #FFB800)',
-    chipText: '#fff',
+    chipText: '#fff', isDark: true,
   },
   'electric-blue': {
     bg: '#04001a', bg2: '#0a0030',
-    accent: '#4DB8FF', secondary: '#C084FC', text: '#FFFFFF',
+    accent: '#4DB8FF', secondary: '#C084FC', text: '#FFFFFF', textDim: 'rgba(255,255,255,0.5)',
     glow: '#4169E1', particle: '#4DB8FF', matrix: '#4DB8FF',
     grad: 'linear-gradient(135deg,#4DB8FF 0%,#C084FC 50%,#4DB8FF 100%)',
     bgGrad: 'radial-gradient(ellipse 100% 90% at 50% 20%, #0d003a 0%, #04001a 55%, #000 100%)',
     glowOrbs: ['#4DB8FF22', '#C084FC18'],
     symbols: ['◉', '★', '✦', '⬡', '◈', '▲', '∞', '◉'],
     chipBg: 'linear-gradient(120deg, #4DB8FF, #C084FC)',
-    chipText: '#000',
+    chipText: '#000', isDark: true,
+  },
+  // ── LIGHT themes ─────────────────────────────────────────────────────────────
+  'solar': {
+    bg: '#FFF8F0', bg2: '#FFF0DC',
+    accent: '#FF6B00', secondary: '#FFB800', text: '#1A1A1A', textDim: 'rgba(0,0,0,0.45)',
+    glow: '#FF6B00', particle: '#FF6B00', matrix: '#FF6B00',
+    grad: 'linear-gradient(135deg,#FF6B00 0%,#FFB800 50%,#FF4500 100%)',
+    bgGrad: 'radial-gradient(ellipse 120% 80% at 40% 20%, #FFF0CC 0%, #FFF8F0 60%, #FFE8D0 100%)',
+    glowOrbs: ['#FF6B0020', '#FFB80018'],
+    symbols: ['☀️', '▲', '★', '✦', '◈', '◉', '▲', '★'],
+    chipBg: 'linear-gradient(120deg, #FF6B00, #FFB800)',
+    chipText: '#fff', isDark: false,
+  },
+  'clean-blue': {
+    bg: '#F0F8FF', bg2: '#E4F2FF',
+    accent: '#0055FF', secondary: '#00AAFF', text: '#050A1E', textDim: 'rgba(5,10,30,0.45)',
+    glow: '#0055FF', particle: '#0055FF', matrix: '#0055FF',
+    grad: 'linear-gradient(135deg,#0055FF 0%,#00AAFF 100%)',
+    bgGrad: 'radial-gradient(ellipse 120% 80% at 60% 10%, #D0E8FF 0%, #F0F8FF 60%, #E0F0FF 100%)',
+    glowOrbs: ['#0055FF18', '#00AAFF14'],
+    symbols: ['◉', '▲', '★', '✦', '◈', '∞', '◉', '▲'],
+    chipBg: 'linear-gradient(120deg, #0055FF, #00AAFF)',
+    chipText: '#fff', isDark: false,
   },
 } as const;
 
@@ -81,6 +105,7 @@ export type UniversalShortProps = {
   stats: Array<{ label: string; value: string }>;
   durationInFrames: number;
   fps: number;
+  avatarClip?: string;   // AI talking-head video (optional PiP)
 };
 
 // ── Easing helpers ────────────────────────────────────────────────────────────
@@ -314,25 +339,108 @@ const GlowOrbs: React.FC<{ scheme: Scheme }> = ({ scheme }) => {
   );
 };
 
-// ── Animated background with beat pulse ──────────────────────────────────────
+// ── Animated background — handles both dark and light themes ──────────────────
 const AnimatedBg: React.FC<{ scheme: Scheme; opacity?: number }> = ({ scheme, opacity = 1 }) => {
   const frame   = useCurrentFrame();
   const { height } = useVideoConfig();
   const scanY   = (frame * 3.2) % height;
-  // Beat pulse: every 30 frames, brief brightness boost
   const beatAge = frame % 30;
   const beat    = 1 + itp(beatAge, [0, 4], [0.05, 0], E.out);
 
   return (
     <AbsoluteFill style={{ opacity }}>
       <AbsoluteFill style={{ background: scheme.bgGrad, transform: `scale(${beat})` }} />
-      <TechGrid scheme={scheme} opacity={0.07} />
+      <TechGrid scheme={scheme} opacity={scheme.isDark ? 0.07 : 0.05} />
+      {/* Scan line — subtle on light themes */}
       <div style={{
         position: 'absolute', left: 0, right: 0, top: scanY, height: 1.5,
-        background: `linear-gradient(90deg, transparent, ${scheme.accent}55, transparent)`,
+        background: `linear-gradient(90deg, transparent, ${scheme.accent}${scheme.isDark ? '55' : '33'}, transparent)`,
       }} />
       <GlowOrbs scheme={scheme} />
+      {/* Light theme: soft vignette border */}
+      {!scheme.isDark && (
+        <AbsoluteFill style={{
+          background: 'radial-gradient(ellipse 90% 90% at 50% 50%, transparent 55%, rgba(0,0,0,0.06) 100%)',
+          pointerEvents: 'none',
+        }} />
+      )}
     </AbsoluteFill>
+  );
+};
+
+// ── AI Avatar PiP (talking-head circle) ───────────────────────────────────────
+const AvatarPiP: React.FC<{ clipPath: string; scheme: Scheme; frame: number }> = ({
+  clipPath, scheme, frame,
+}) => {
+  const slideIn = spring({ frame, fps: 30, config: { damping: 18, stiffness: 120 }, from: 200, to: 0 });
+  const pulse   = 0.85 + 0.15 * Math.sin(frame * 0.08);
+  return (
+    <div style={{
+      position: 'absolute', bottom: 170, left: 30,
+      transform: `translateX(${slideIn}px)`,
+    }}>
+      {/* Glow ring */}
+      <div style={{
+        position: 'absolute', inset: -6, borderRadius: '50%',
+        background: scheme.grad,
+        opacity: pulse * 0.85,
+        filter: `blur(8px)`,
+      }} />
+      {/* Circle frame */}
+      <div style={{
+        width: 148, height: 148, borderRadius: '50%', overflow: 'hidden',
+        border: `3px solid ${scheme.accent}`,
+        boxShadow: `0 0 24px ${scheme.accent}88, 0 0 50px ${scheme.accent}33`,
+        position: 'relative', background: scheme.bg,
+      }}>
+        <Video
+          src={staticFile(clipPath)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </div>
+      {/* "AI" badge */}
+      <div style={{
+        position: 'absolute', bottom: -2, right: -2,
+        background: scheme.chipBg,
+        borderRadius: 12, padding: '3px 10px',
+        fontFamily: orbitron, fontSize: 10, color: scheme.chipText,
+        letterSpacing: 2, fontWeight: 700,
+        boxShadow: `0 0 12px ${scheme.accent}`,
+      }}>AI</div>
+    </div>
+  );
+};
+
+// ── Info badge — animated callout box ─────────────────────────────────────────
+const InfoBadge: React.FC<{
+  text: string; x: number; y: number; delay: number; scheme: Scheme;
+}> = ({ text, x, y, delay, scheme }) => {
+  const frame = useCurrentFrame();
+  const age   = frame - delay;
+  if (age < 0) return null;
+  const alpha    = itp(age, [0, 12], [0, 1]) * itp(age, [55, 75], [1, 0]);
+  const slideY   = itp(age, [0, 14], [20, 0], E.out);
+  if (alpha <= 0) return null;
+  return (
+    <div style={{
+      position: 'absolute', left: x, top: y,
+      opacity: alpha, transform: `translateY(${slideY}px)`,
+      background: scheme.isDark ? `${scheme.bg2}ee` : `rgba(255,255,255,0.92)`,
+      border: `1.5px solid ${scheme.accent}`,
+      borderRadius: 12, padding: '10px 18px',
+      boxShadow: `0 0 20px ${scheme.accent}44`,
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <div style={{
+        width: 8, height: 8, borderRadius: '50%',
+        background: scheme.accent, boxShadow: `0 0 8px ${scheme.accent}`,
+        flexShrink: 0,
+      }} />
+      <span style={{
+        fontFamily: orbitron, fontSize: 13, color: scheme.accent,
+        letterSpacing: 1.5, fontWeight: 700,
+      }}>{text}</span>
+    </div>
   );
 };
 
@@ -493,7 +601,6 @@ const CountUp: React.FC<{
       letterSpacing: 4, lineHeight: 1,
       textShadow: `0 0 40px ${scheme.glow}, 0 0 80px ${scheme.glow}55, 0 0 120px ${scheme.glow}22`,
     }}>
-      {prefix}<span style={{ fontSize: fs * 0.75 }}>{prefix === '' ? '' : ''}</span>
       {prefix}{display}{suffix}
     </div>
   );
@@ -673,7 +780,7 @@ const SceneTitle: React.FC<{
 
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 0 }}>
-      <MatrixRain opacity={0.12} scheme={scheme} />
+      {scheme.isDark && <MatrixRain opacity={0.12} scheme={scheme} />}
       <ParticleDots scheme={scheme} count={60} />
       <Rays cx={width / 2} cy={height * 0.42} r0={130} r1={550} count={24} color={scheme.accent} rpm={0.44} opacity={0.18} />
 
@@ -762,7 +869,8 @@ const SceneBroll: React.FC<{
   scheme: Scheme;
   sceneDuration: number;
   absoluteFrame: number;
-}> = ({ brollClips, imageSlides, captions, stats, hashtags, scheme, sceneDuration, absoluteFrame }) => {
+  avatarClip?: string;
+}> = ({ brollClips, imageSlides, captions, stats, hashtags, scheme, sceneDuration, absoluteFrame, avatarClip }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -803,7 +911,7 @@ const SceneBroll: React.FC<{
       ) : (
         <>
           <AnimatedBg scheme={scheme} />
-          <MatrixRain opacity={0.12} scheme={scheme} />
+          {scheme.isDark && <MatrixRain opacity={0.12} scheme={scheme} />}
           <PerspGrid scheme={scheme} />
         </>
       )}
@@ -865,7 +973,7 @@ const SceneBroll: React.FC<{
                   fontSize: isActive ? (isNum ? 106 : 96) : (isPast ? 58 : 62),
                   color: isActive
                     ? scheme.chipText
-                    : (isPast ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.72)'),
+                    : (isPast ? scheme.textDim : scheme.text),
                   letterSpacing: 3,
                   lineHeight: 1.1,
                   textShadow: isActive
@@ -880,6 +988,23 @@ const SceneBroll: React.FC<{
           })}
         </div>
       )}
+
+      {/* AI Avatar PiP — bottom-left talking head */}
+      {avatarClip && (
+        <AvatarPiP clipPath={avatarClip} scheme={scheme} frame={frame} />
+      )}
+
+      {/* Info badges — pop up during narration at intervals */}
+      {stats.slice(0, 3).map((stat, i) => (
+        <InfoBadge
+          key={i}
+          text={`${stat.label}: ${stat.value}`}
+          x={avatarClip ? 200 : 36}
+          y={200 + i * 120}
+          delay={30 + i * 90}
+          scheme={scheme}
+        />
+      ))}
 
       <TickerBar stats={stats} hashtags={hashtags} scheme={scheme} />
     </AbsoluteFill>
@@ -904,7 +1029,7 @@ const SceneStats: React.FC<{
       {/* Background */}
       <AbsoluteFill style={{ background: `linear-gradient(160deg, ${scheme.bg}f0 0%, ${scheme.bg2}d8 100%)` }} />
       <GlowOrbs scheme={scheme} />
-      <MatrixRain opacity={0.08} scheme={scheme} />
+      {scheme.isDark && <MatrixRain opacity={0.08} scheme={scheme} />}
       <ParticleDots scheme={scheme} count={50} />
       <Rays cx={width / 2} cy={height * 0.5} r0={100} r1={580} count={28} color={scheme.accent} rpm={0.35} opacity={0.14} />
       <HUDCorners scheme={scheme} frame={frame} />
@@ -1014,7 +1139,7 @@ const SceneFinale: React.FC<{
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 32 }}>
       <AnimatedBg scheme={scheme} />
-      <MatrixRain opacity={0.1} scheme={scheme} />
+      {scheme.isDark && <MatrixRain opacity={0.1} scheme={scheme} />}
       <ParticleDots scheme={scheme} count={55} />
       <Confetti scheme={scheme} />
       <Rays cx={width / 2} cy={height / 2} r0={70} r1={700} count={32} color={scheme.accent} rpm={0.6} opacity={0.19} />
@@ -1077,7 +1202,7 @@ const SceneFinale: React.FC<{
 // ══════════════════════════════════════════════════════════════════════════════
 export const UniversalShort: React.FC<UniversalShortProps> = ({
   topic, audioFile, captionsFile, brollClips, imageSlides = [],
-  colorScheme, titleCard, cta, hashtags, stats, durationInFrames,
+  colorScheme, titleCard, cta, hashtags, stats, durationInFrames, avatarClip,
 }) => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -1139,6 +1264,7 @@ export const UniversalShort: React.FC<UniversalShortProps> = ({
             scheme={scheme}
             sceneDuration={FINALE_START - TITLE_END}
             absoluteFrame={frame}
+            avatarClip={avatarClip}
           />
         </Sequence>
       </div>
