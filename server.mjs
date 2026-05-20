@@ -540,5 +540,6 @@ app.get('/api/youtube-log', (_req, res) => {
 const PORT = process.env.PORT ?? 3131;
 app.listen(PORT, () => {
   console.log(`\n  Video Subtitle App  →  http://localhost:${PORT}`);
-  console.log(`  AI Shorts Studio   →  http://localhost:${PORT}/studio.html\n`);
+  console.log(`  AI Shorts Studio   →  http://localhost:${PORT}/studio.html`);
+  console.log(`  ✨ Channel Creator  →  http://localhost:${PORT}/create.html\n`);
 });
